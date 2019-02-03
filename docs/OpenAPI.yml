@@ -8,7 +8,7 @@ servers:
     url: https://virtserver.swaggerhub.com/AnorZaken7/LudoMoves/1.0.0
 info:
   description: API for the Ludo Lone Star game server.
-  version: "1.0.0"
+  version: "2.0.0"
   title: Ludo Lone Star API
   contact:
     email: you@your-company.com
@@ -97,7 +97,7 @@ paths:
         '201': # Created
           description: |
             OK. Here's the id of the new game.
-            The creator of a lobby is always assigned playerId 0.
+            The creator of a lobby is always assigned playerIndex 0.
           content:
             text/plain:
               schema:
@@ -109,7 +109,7 @@ paths:
     get:
       tags: 
         - users
-      summary: Game lobby information.
+      summary: Get lobby information.
       description: Which players are in the game, can the game still be joined, etc.
       operationId: ludoLobbyInfo
       responses:
@@ -125,10 +125,10 @@ paths:
       tags:
         - users
       summary: Join a game lobby.
-      description: TODO
-      operationId: ludoLobbyJoin
+      description: Adds the specified player to a game lobby, returning an auto assigned player index.
+      operationId: ludoLobbyAddPlayer
       parameters: 
-        - name: Joining-User
+        - name: PlayerId
           in: header
           description: Id of the user who wants to join.
           schema:
@@ -136,7 +136,9 @@ paths:
           required: true
       responses:
         '200':
-          description: Game joined. Here's your playerId for this game.
+          description: |
+            Game joined. Here's your playerIndex for this game.
+            (Also sent if the player has already joined this game.)
           content:
             text/plain:
               schema:
@@ -146,19 +148,19 @@ paths:
                 maximum: 3
           #TODO: return game auth token
         '404':
-          description: No such game exists.
+          description: No such game and / or player id exists.
         '409': # "This response is sent when a request conflicts with the current state of the server."
-          description: Can not join the game (reason returned).
+          description: |
+            Can not join the game (for reason returned);
             full - The lobby is full.
             late - The game is already in progress, you are late to the party.
-            dupe - User is already part of that game.
             nope - Other unspecified reason.
           content:
             text/plain:
               schema:
                 type: string
-                enum: [full, late, dupe, nope]
-    put:
+                enum: [full, late, nope]
+    post:
       tags: 
         - players
       summary: Start game.
@@ -174,158 +176,71 @@ paths:
           description: No such game exists.
         '409':
           description: Not enough players, or not all players ready.
-      #TODO: require game auth token + 401 & 403 response
-                
-  /ludo/lobby/{gameId}/{playerId}:
-    parameters:
-      - $ref: '#/components/parameters/gameIdPath'
-      - $ref: '#/components/parameters/playerIdPath'
-    get:
-      tags:
-        - users
-      summary: Player ready state.
-      description: Ready state for that player in that game.
-      operationId: ludoLobbyGetReady
-      responses:
-        '200':
-          description: Ready state.
-          content:
-            text/plain:
-              schema:
-                type: boolean
-        '400':
-          description: Bad playerId.
-        '404':
-          description: No such game exists.
-        '409':
-          description: Game already in progress.
-    put:
-      tags: 
-        - players
-      summary: Set player's ready status.
-      description: All players in a lobby need to ready up before a game can start.
-      operationId: ludoLobbySetReady
-      parameters:
-        - name: ready
-          in: query
-          required: true
-          description: Sets the players ready flag.
-          schema:
-            type: boolean
-      responses:
-        '204':
-          description: OK
-        '400':
-          description: Bad playerId.
-        '404':
-          description: No such game exists.
-        '409':
-          description: Game already in progress.
-      #TODO: require game auth token + 401 & 403 response
     delete:
       tags:
         - players
-      summary: Leave lobby / concede.
+      summary: Leave lobby.
       description: When the last player leaves, the lobby itself is deleted.
       operationId: ludoLobbyLeave
       responses:
         '204':
           description: OK
-        '400':
-          description: Bad playerId.
         '404':
-          description: No such game exists.
+          description: No such game and / or player id exists.
         '409':
-          description: Player has already left / conceded.
+          description: Player has already left / is not a member of this lobby.
       #TODO: require game auth token + 401 & 403 response
-  
-  /ludo/games:
-    get:
-      tags:
-        - users
-      summary: Returns a list of games.
-      description: Only returns running games by default.
-      parameters:
-        - name: show
-          in: query
-          description: TODO
-          schema:
-            type: string
-            enum: [running, completed, all]
-            default: running
-        - name: id
-          in: query
-          description: Search for a specific game (implies show=all).
-          schema:
-            type: string
-      responses:
-        '200':
-          description: A JSON array of GameInfo objects.
-          content:
-            application/JSON:
-              schema:
-                $ref: '#/components/schemas/GameInfo'
-        '400':
-          description: bad input parameter
-        '404':
-          description: No such game exists. (When using the id parameter.)
-  
-  /ludo/game/{gameId}:
-    parameters: 
+
+  /ludo/lobby/{gameId}/{playerIndex}:
+    parameters:
       - $ref: '#/components/parameters/gameIdPath'
+      - $ref: '#/components/parameters/playerIndexPath'
     get:
       tags:
         - users
-      summary: Current player and die roll.
-      description: |
-        The state of a game (CurrentPlayer, CurrentDieRoll).
-        Combine this with board state and lobby data to have a complete save.
-      operationId: ludoGetCurrent
+      summary: Get Player ID and ready state.
+      description: Ready state and player ID for the player bound to the specified index.
+      operationId: ludoLobbyGetReady
       responses:
         '200':
           description: OK
           content:
             application/JSON:
               schema:
-                $ref: '#/components/schemas/PlayerDie'
+                $ref: '#/components/schemas/PlayerReady'
+        '400':
+          description: Bad playerIndex.
         '404':
           description: No such game exists.
         '409':
-          description: Game has either not started or has already ended.
+          description: Game already in progress.
+      #TODO: require game auth token + 401 & 403 response
     put:
       tags:
         - players
-      summary: Set current player and die roll.
-      description: Setting current player and die roll can only be done while still in lobby.
-      operationId: ludoSetPlayerDie
-      parameters:
-        - name: player
-          in: query
-          required: true
-          description: Current player
+      summary: Set a player's playerIndex and ready status.
+      description: |
+        Binds (or unbinds) a player id to a player index (thus determening the turn order) and sets the players ready status.
+        Cannot bind to an index which another player is currently bound to.
+        All players in a lobby need to ready up before a game can start.
+        Use an index of -1 to unbind a player (implies not ready).
+      operationId: ludoLobbySetPlayer
+      parameters: 
+        - name: PlayerReady
+          in: header
+          description: Id of the player to bind to this player index and their ready status.
           schema:
-            type: integer
-            format: int32
-            minimum: 0
-            maximum: 3
-        - name: roll
-          in: query
+            $ref: '#/components/schemas/PlayerReady'
           required: true
-          description: Current die roll
-          schema:
-            type: integer
-            format: int32
-            minimum: 1
-            maximum: 6
       responses:
         '204':
-          description: OK
+          description: OK (Also sent if no change occurred.)
         '400':
-          description: Bad input parameter.
+          description: Bad playerIndex.
         '404':
-          description: No such game exists.
+          description: No such game and / or player id exists.
         '409':
-          description: Game has already started (perhaps even ended).
+          description: Player index occupied, or player id not in this lobby, or game already in progress.
       #TODO: require game auth token + 401 & 403 response
   
   /ludo/board:
@@ -333,7 +248,7 @@ paths:
       tags:
         - users
       summary: Get a BoardInfo object.
-      description: Extrapolates board information from boardLength.
+      description: Extrapolates standard board information from a boardLength.
       operationId: ludoGetBoardInfo
       parameters:
         - name: length
@@ -361,7 +276,7 @@ paths:
     get:
       tags:
         - users
-      summary: Current board state.
+      summary: Get current board state.
       description: TODO # <----------------------------------
       operationId: ludoGetBoardState
       responses:
@@ -382,19 +297,12 @@ paths:
       description: Setting the BoardState can only be done while still in lobby.
       operationId: ludoSetBoardState
       parameters:
-        - name: distances
-          in: query
+        - name: BoardState
+          in: header
           required: true
-          description: |
-            The state of the board in the form of an array of player relative board indexes ("distances"), starting with all pieces (0-3) for player 0, then all pieces for player 1, etc.
-            (Length of the array is thus PlayerCount * PieceCount.)
+          description: The board state (BoardState object containing PieceDistances).
           schema:
-            type: array
-            items:
-              type: integer
-              format: int32
-              minimum: 0
-              maximum: 90 # based on maximum boardLength
+            $ref: '#/components/schemas/BoardState'
       responses:
         '204':
           description: OK
@@ -406,20 +314,95 @@ paths:
           description: Game has already started (perhaps even ended).
       #TODO: require game auth token + 401 & 403 response
   
-  /ludo/game/{gameId}/{playerId}:
+  /ludo/games:
+    get:
+      tags:
+        - users
+      summary: Returns a list of games.
+      description: Only returns running games by default.
+      parameters:
+        - name: show
+          in: query
+          description: TODO # <--------------------------------------
+          schema:
+            type: string
+            enum: [running, completed, all]
+            default: running
+        - name: id
+          in: query
+          description: Search for a specific game (implies show=all).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A JSON array of GameListEntry objects.
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/GameListEntry'
+        '400':
+          description: bad input parameter
+        '404':
+          description: No such game exists. (If using the id parameter.)
+  
+  /ludo/game/{gameId}:
+    parameters: 
+      - $ref: '#/components/parameters/gameIdPath'
+    get:
+      tags:
+        - users
+      summary: Get current player and die roll.
+      description: |
+        The state of a game (CurrentPlayer, CurrentDieRoll).
+        Combine this with board state and lobby data to have a complete save.
+      operationId: ludoGetCurrent
+      responses:
+        '200':
+          description: OK
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/PlayerDie'
+        '404':
+          description: No such game exists.
+        '409':
+          description: Game has either not started yet or has already ended.
+    put:
+      tags:
+        - players
+      summary: Set current player and die roll.
+      description: Setting current player and die roll can only be done while still in lobby.
+      operationId: ludoSetCurrent
+      parameters:
+        - name: Current
+          in: header
+          required: true
+          description: Current player index and their die roll.
+          schema:
+            $ref: '#/components/schemas/PlayerDie'
+      responses:
+        '204':
+          description: OK
+        '400':
+          description: Bad input parameter.
+        '404':
+          description: No such game exists.
+        '409':
+          description: Game has already started (perhaps even ended).
+      #TODO: require game auth token + 401 & 403 response
+  
+  /ludo/game/{gameId}/{playerIndex}:
     parameters:
       - $ref: '#/components/parameters/gameIdPath'
-      - $ref: '#/components/parameters/playerIdPath'
+      - $ref: '#/components/parameters/playerIndexPath'
     # get: decision making info
     # post: PassTurn!
     # delete: concede.
     get:
       tags:
         - users
-      summary: Turn info for the current player.
-      description: >
-        TurnInfo object for turn decision making.
-        Contains an array of PieceInfo objects.
+      summary: Get a TurnInfo object for the current player.
+      description: The TurnInfo object contains information on the current player's available moves.
       operationId: ludoGetTurnInfo
       responses:
         '200':
@@ -436,56 +419,58 @@ paths:
       tags:
         - players
       summary: Ends the turn without moving.
-      description: |
-        Passes the turn over to the next player, unless the player has a bonus turn ("IsLucky") in which case it begins their bonus turn.
-        Passing is by default only allowed if no move is possible.
+      description: >
+        Passes the turn over to the next player; unless the player has a bonus turn ("IsLucky"),
+        in which case the current player remains active and only the die is re-rolled.
+        Passing is by default only allowed if no move is possible on the current turn.
       operationId: ludoPassTurn
       responses:
         '204':
           description: OK
         '400':
-          description: Bad playerId.
+          description: Bad playerIndex.
         '404':
           description: No such game exists.
         '409':
-          description: |
-            Not the active player, or not allowed to pass the turn.
-            (Could be because the game has ended.)
+          description: >
+            Rules do not allow passing the turn, or not the active player
+            (e.g. game has ended / not started yet).
       #TODO: require game auth token + 401 & 403 response
     delete:
       tags:
         - players
-      summary: Concedes the game.
+      summary: Concede.
       description: |
         Irrevocably hands over control of your pieces to a bot.
         If only one human player remains after a concede, that player is declared the winner and the game ends.
+        (wip)
       operationId: ludoConcede
       responses:
         '204':
-          description: OK
+          description: OK (Also sent if the player has already conceded and / or the game has ended.
         '400':
-          description: Bad playerId.
+          description: Bad playerIndex.
         '404':
           description: No such game exists.
         '409':
           description: This player has already conceded and / or the game has ended.
       #TODO: require game auth token + 401 & 403 response
     
-  /ludo/game/{gameId}/{playerId}/{pieceId}:
+  /ludo/game/{gameId}/{playerIndex}/{pieceIndex}:
     parameters:
       - $ref: '#/components/parameters/gameIdPath'
-      - $ref: '#/components/parameters/playerIdPath'
-      - $ref: '#/components/parameters/pieceIdPath'
+      - $ref: '#/components/parameters/playerIndexPath'
+      - $ref: '#/components/parameters/pieceIndexPath'
     # get: PieceInfo!
     # post: MovePiece! <---- put or patch or post?
     get:
       tags:
         - users
-      summary: Returns a PieceInfo object.
+      summary: Get a PieceInfo object.
       description: |
         A PieceInfo object describing state, movability, and collision / blocking for the piece.
-        Requires that playerId is the current player.
-      operationId: ludoGetPiece
+        Requires that playerIndex is that of the current player.
+      operationId: ludoGetPieceInfo
       responses:
         '200':
           description: A PieceInfo object.
@@ -500,14 +485,14 @@ paths:
         '409':
           description: |
             PieceInfo can only be acquired / calculated for the active player.
-            (Could be because the game has ended.)
+            (Perhaps game has ended or not started yet.)
     post:
       tags: 
         - players
       summary: Moves the piece.
       description: |
         Moves the piece according to the current die roll.
-        Requires that playerId is the current player and that pieceId is a movable piece.
+        Requires that playerIndex is the current player and that pieceIndex is a movable piece.
       operationId: ludoMovePiece
       responses:
         '204':
@@ -517,9 +502,9 @@ paths:
         '404':
           description: No such game exists.
         '409':
-          description: |
-            Not the active player, or not a movable piece.
-            (Could be because the game has ended.)
+          description: >
+            Not a movable piece, or not the active player
+            (e.g. game has ended / not started yet).
       #TODO: require game auth token + 401 & 403 response
   
   # This path is not required to play, it just allows anyone to query moves for an arbitrary gamestate.
@@ -586,49 +571,114 @@ components:
       description: Id of a game.
       schema:
         type: string
-    playerIdPath:
-      name: playerId
+    playerIndexPath:
+      name: playerIndex
       in: path
       required: true
-      description: Game specific playerId.
+      description: Game specific playerIndex.
       schema:
         type: integer
         format: int32
         minimum: 0
         maximum: 3
-    pieceIdPath:
-      name: pieceId
+    pieceIndexPath:
+      name: pieceIndex
       in: path
       required: true
-      description: Player specific pieceId.
+      description: Player specific pieceIndex.
       schema:
         type: integer
         format: int32
         minimum: 0
         maximum: 3
   schemas:
+    GameState:
+      type: string
+      enum: [setup, ingame, finished]
+      description: The state of a game / lobby.
+    LobbyAccess:
+      type: string
+      enum: [public, unlisted, friendsOnly, inviteOnly, reservations]
+      description: |
+        Setting that determines the rules for joining a lobby.
+        public - game is publicly listed and anyone can join.
+        unlisted - anyone with the gameId can join, but game is not publicly listed.
+        friendsOnly - game is publicly listed, but only friends can join. (wip)
+        inviteOnly - game is not publicly listed and can only be joined by invite. (wip)
+        reservations - public game where anyone can join; however playerIndexes are pre-associated
+        with playerIds such that if those players join they are automatically granted their pre-associated
+        index, vacating any previous occupant from that slot. (wip)
     LobbyListEntry:
       type: object
+      required:
+        - gameId
+        - access
       properties:
         gameId:
           type: string
-        #TODO: add more properties... <-------------------------
+        access:
+          $ref: '#/components/schemas/LobbyAccess'
+        players:
+          type: array
+          description: An array of player ids that are in this game / lobby.
+          items:
+            type: string
+        #TODO: add more properties..? <-------------------------
+    PlayerReady:
+      type: object
+      required:
+        - playerId
+        - ready
+      properties:
+        playerId:
+          type: string
+        ready:
+          type: boolean
     LobbyInfo:
       type: object
+      required:
+        - state
+        - players
       properties:
-        #TODO: add more properties... <-------------------------
+        state:
+          $ref: '#/components/schemas/GameState'
         players:
           type: array
           items:
-            type: string
-    GameInfo:
+            type: object
+            properties:
+              id:
+                type: string
+              index:
+                type: integer
+                format: int32
+                minimum: -1
+                maximum: 3
+        #TODO: add more properties..?
+    GameListEntry:
       type: object
+      required:
+        - gameId
+        - state
       properties:
         gameId:
           type: string
-        #TODO: add more properties... <-------------------------
+        state:
+          $ref: '#/components/schemas/GameState'
+        winner:
+          type: string
+          description: Winning player's id (or omitted / empty if no winner has been decided).
+        players:
+          type: array
+          description: An array of player ids that are in this game / lobby.
+          items:
+            type: string
+        #TODO: add more properties..?
     StartEndPos:  # min-max values derive from min-max of boardLength.
       type: object
+      required:
+        - startPos
+        - endZonePos
       properties:
         startPos:
           type: integer
@@ -647,6 +697,8 @@ components:
           maximum: 110
     BoardInfo:  # default values are for a standard sized Ludo board.
       type: object
+      required:
+        - boardLength
       properties:
         boardLength:
           type: integer
@@ -673,23 +725,30 @@ components:
             The absolute start positions, paired with the absolute position of the first square of the endzone, for each player.
           items:
             $ref: '#/components/schemas/StartEndPos'
-        #TODO add starting positions etc.  <---------------
+        #TODO add more properties..?
+    PieceDistances:
+      type: array
+      description: |
+        An array of piece distances (for a player's pieces).
+        These player relative board positions describe how far a piece has moved.
+        To translate them into absolute board positions, the length of the board and the index of the player must also be known.
+        Assuming the distance is less than the board length (i.e. if the piece is still on the shared competative track) the formula looks like so;
+        position = (distance + playerIndex * boardLength / 4) % boardLength
+      items:
+        type: integer
+        format: int32
+        minimum: 0
+        maximum: 90 # based on maximum allowed boardLength
     BoardState:
       type: array
-      description: An array of piece distance arrays (one for each player).
+      description: An array of piece distance arrays (one for each player index).
       items:
-        type: array
-        description: |
-          An array of piece distances (one for each piece).
-          These player relative board positions describe how far a piece has moved. To translate it into an absolute board position, the length of the board and the index of the player must also be known.
-          Assuming the distance is less than the board length (i.e. if the piece is still on the shared competative track) the formula looks like so;
-          position = (distance + playerId * boardLength / 4) % boardLength
-        items:
-          type: integer
-          format: int32
-          minimum: 0
+        $ref: '#/components/schemas/PieceDistances'
     PlayerDie:
       type: object
+      required:
+        - player
+        - die
       properties:
         player:
           type: integer
@@ -703,14 +762,20 @@ components:
           format: int32
           minimum: 1
           maximum: 6
-    GameState:
+    GameSave:
       type: object
+      required:
+        - board
+        - current
+        - lobby
       properties:
+        board:
+          $ref: '#/components/schemas/BoardState'
         current:
           $ref: '#/components/schemas/PlayerDie'
-        distances:
-          $ref: '#/components/schemas/BoardState'
-        #TODO add missing data to make this a complete game save
+        lobby:
+          $ref: '#/components/schemas/LobbyInfo'
+        #TODO is any data missing to make this a complete game save?
     TurnInfo:
       type: object
       required:
