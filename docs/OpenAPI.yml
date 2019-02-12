@@ -8,7 +8,7 @@ servers:
     url: https://virtserver.swaggerhub.com/AnorZaken7/LudoMoves/1.0.0
 info:
   description: API for the Ludo Lone Star game server.
-  version: "2.0.0"
+  version: "2.1.0"
   title: Ludo Lone Star API
   contact:
     email: you@your-company.com
@@ -46,11 +46,11 @@ paths:
         - name: show
           in: query
           description: |
-            Filters lobbies based on how full they are:
-            open: Show open only.
-            full: Show full only.
-            all: Show both open and full.
-            penultimate: Show only lobbies with exactly one slot remaining.
+            Filters lobbies based on how full they are;
+            open - Show open only.
+            full - Show full only.
+            all - Show both open and full.
+            penultimate - Show only lobbies with exactly one slot remaining.
           schema:
             type: string
             default: open
@@ -58,20 +58,14 @@ paths:
         - name: playerIds
           in: query
           description: |
-            Filter to lobbies where at least one of the specified playerIds is present. (Could for example be your friends list.)
+            Filter to lobbies where at least one of the specified playerIds is present (e.g. your friends).
           schema:
             type: array
             items:
               type: string
-        - name: showPlayerIds
-          in: query
-          description: Include playerIds for each lobby.
-          schema:
-            type: boolean
-          allowEmptyValue: true
       responses:
         '200':
-          description: A JSON array of Lobby objects
+          description: A JSON array of LobbyListEntry objects
           content:
             application/json:
               schema:
@@ -608,6 +602,28 @@ components:
         reservations - public game where anyone can join; however playerIndexes are pre-associated
         with playerIds such that if those players join they are automatically granted their pre-associated
         index, vacating any previous occupant from that slot. (wip)
+    LobbySlotReservation:
+      type: object
+      parameters:
+        playerId:
+          type: string
+          description: Player id that this slot is reserved to.
+        strict:
+          type: boolean
+          description: >
+            If the reservation is strict, then no other player may take this slot.
+            Otherwise it functions as a normal slot, except that the player it's
+            reserved to may evict other players to claim it.
+    LobbySlot:
+      type: object
+      required:
+        - occupant
+      properties:
+        occupant:
+          type: string
+          description: Player id of the occupant of this slot; otherwise empty.
+        reserved:
+          $ref: '#/components/schemas/LobbySlotReservation'
     LobbyListEntry:
       type: object
       required:
@@ -618,11 +634,11 @@ components:
           type: string
         access:
           $ref: '#/components/schemas/LobbyAccess'
-        players:
+        slots:
           type: array
-          description: An array of player ids that are in this game / lobby.
+          description: An array of LobbySlot objects.
           items:
-            type: string
+            $ref: '#/components/schemas/LobbySlot'
         #TODO: add more properties..? <-------------------------
     PlayerReady:
       type: object
