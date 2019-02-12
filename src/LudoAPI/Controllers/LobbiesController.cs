@@ -16,14 +16,18 @@ namespace LudoWebAPI.Controllers
         [HttpGet]
         public ActionResult<IEnumerable<LobbyListEntry>> Get([FromQuery]Show show)
         {
-            return new LobbyListEntry[] {
-                new LobbyListEntry {
-                    GameId = show.ToString(),
-                    Access = LobbyAccess.@public,
-                    Slots = new LobbySlot[] {
-                        new LobbySlot(),
-                        new LobbySlot(),
-            }   }   };
+            // TODO
+            return Placeholder();
+
+            ActionResult<IEnumerable<LobbyListEntry>> Placeholder()
+                => new LobbyListEntry[] {
+                    new LobbyListEntry {
+                        GameId = show.ToString(),
+                        Access = LobbyAccess.@public,
+                        Slots = new LobbySlot[] {
+                            new LobbySlot(),
+                            new LobbySlot(),
+                }   }   };
         }
 
         public enum Show

@@ -2,11 +2,12 @@
 
 namespace Ludo.WebAPI.Models
 {
-    public class LobbyListEntry
+    public class GameListEntry
     {
         public string GameId { get; set; }
         [JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))] // serialize as string!
-        public LobbyAccess Access { get; set; }
-        public LobbySlot[] Slots { get; set; }
+        public GameState State { get; set; }
+        public string Winner { get; set; }
+        public string[] Players { get; set; }
     }
 }
