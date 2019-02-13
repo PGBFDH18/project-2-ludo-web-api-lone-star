@@ -55,10 +55,10 @@ paths:
             type: string
             default: open
             enum: [open, full, all, penultimate]
-        - name: playerIds
+        - name: playerId
           in: query
-          description: |
-            Filter to lobbies where at least one of the specified playerIds is present (e.g. your friends).
+          description: >
+            Filter to lobbies where at least one specified player id is present (e.g. your friends).
           schema:
             type: array
             items:
@@ -81,7 +81,7 @@ paths:
       description: Creates a new lobby and joins it as player 0.
       operationId: ludoCreateLobby
       parameters: 
-        - name: LudoUser
+        - name: PlayerId
           in: header
           description: Id of the user creating the lobby.
           schema:
@@ -90,12 +90,16 @@ paths:
       responses:
         '201': # Created
           description: |
-            OK. Here's the id of the new game.
+            Returns the id of the newly created game.
             The creator of a lobby is always assigned playerIndex 0.
           content:
             text/plain:
               schema:
                 type: string
+        '400':
+          description: bad input parameter
+        '404':
+          description: No such player id exists.
   
   /ludo/lobby/{gameId}:
     parameters:
