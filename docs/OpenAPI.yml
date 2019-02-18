@@ -223,13 +223,13 @@ paths:
         All players in a lobby need to ready up before a game can start.
         Use an index of -1 to unbind a player (implies not ready).
       operationId: ludoLobbySetPlayer
-      parameters: 
-        - name: PlayerReady
-          in: header
-          description: Id of the player to bind to this player index and their ready status.
-          schema:
-            $ref: '#/components/schemas/PlayerReady'
-          required: true
+      requestBody:
+        description: Id of the player to bind to this player index and their ready status.
+        required: true
+        content:
+          application/JSON:
+            schema:
+              $ref: '#/components/schemas/PlayerReady'
       responses:
         '204':
           description: OK (Also sent if no change occurred.)
@@ -294,13 +294,13 @@ paths:
       summary: Set the BoardState.
       description: Setting the BoardState can only be done while still in lobby.
       operationId: ludoSetBoardState
-      parameters:
-        - name: BoardState
-          in: header
-          required: true
-          description: The board state (BoardState object containing PieceDistances).
-          schema:
-            $ref: '#/components/schemas/BoardState'
+      requestBody:
+        description: The board state (BoardState object containing PieceDistances).
+        required: true
+        content:
+          application/JSON:
+            schema:
+              $ref: '#/components/schemas/BoardState'
       responses:
         '204':
           description: OK
@@ -371,13 +371,13 @@ paths:
       summary: Set current player and die roll.
       description: Setting current player and die roll can only be done while still in lobby.
       operationId: ludoSetCurrent
-      parameters:
-        - name: Current
-          in: header
-          required: true
-          description: Current player index and their die roll.
-          schema:
-            $ref: '#/components/schemas/PlayerDie'
+      requestBody:
+        description: Current player index and their die roll.
+        required: true
+        content:
+          application/JSON:
+            schema:
+              $ref: '#/components/schemas/PlayerDie'
       responses:
         '204':
           description: OK
