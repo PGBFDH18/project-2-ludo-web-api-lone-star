@@ -2,11 +2,12 @@
 
 namespace Ludo.WebAPI.Models
 {
-    public class PlayerReady
+    public class LobbyReservation
     {
         [Required]
         public string Player { get; set; }
         [Required]
-        public bool Ready { get; set; }
+        public int Slot { get; set; }
+        public bool Strict { get; set; }
     }
 }

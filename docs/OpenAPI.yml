@@ -8,7 +8,7 @@ servers:
     url: https://virtserver.swaggerhub.com/AnorZaken7/LudoMoves/1.0.0
 info:
   description: API for the Ludo Lone Star game server.
-  version: "2.1.0"
+  version: "2.0.0"
   title: Ludo Lone Star API
   contact:
     email: you@your-company.com
@@ -24,24 +24,24 @@ tags:
 paths:
   /ludo:
     get:
+      operationId: ludoServerInfo
       tags:
         - users
       summary: Server state / info.
       description: TODO
-      operationId: ludoServerInfo
       responses:
         '204':
           description: Server is alive! #TODO
         '418':
           description: Coffe? U no can has!
-  
+
   /ludo/lobbies:
     get:
+      operationId: ludoListLobbies
       tags:
         - users
       summary: Lists Ludo lobbies.
       description: TODO
-      operationId: ludoListLobbies
       parameters:
         - name: show
           in: query
@@ -50,15 +50,15 @@ paths:
             open - Show open only.
             full - Show full only.
             all - Show both open and full.
-            penultimate - Show only lobbies with exactly one slot remaining.
+            penultimate - Show only lobbies with exactly one unoccupied slot.
           schema:
             type: string
             default: open
             enum: [open, full, all, penultimate]
-        - name: playerId
+        - name: player
           in: query
           description: >
-            Filter to lobbies where at least one specified player id is present (e.g. your friends).
+            Filter to lobbies where at least one specified player is present (e.g. your friends).
           schema:
             type: array
             items:
@@ -74,42 +74,47 @@ paths:
                   $ref: '#/components/schemas/LobbyListEntry'
         '400':
           description: bad input parameter
+        '404':
+          description: One or more of the specified players does not exists.
+
     post:
+      operationId: ludoCreateLobby
       tags:
         - users
       summary: Creates a new lobby.
       description: Creates a new lobby and joins it as player 0.
-      operationId: ludoCreateLobby
       parameters: 
-        - name: PlayerId
+        - name: Player
           in: header
-          description: Id of the user creating the lobby.
+          description: The user creating the lobby.
           schema:
             type: string
           required: true
       responses:
         '201': # Created
-          description: |
+          description: >
             Returns the id of the newly created game.
-            The creator of a lobby is always assigned playerIndex 0.
+            The creator of a lobby is always assigned to slot 0.
           content:
             text/plain:
               schema:
                 type: string
         '400':
-          description: bad input parameter
+          description: Player not specified.
         '404':
-          description: No such player id exists.
+          description: No such player exists.
+        #TODO: some form of auth?
   
   /ludo/lobby/{gameId}:
     parameters:
       - $ref: '#/components/parameters/gameIdPath'
+    
     get:
+      operationId: ludoLobbyInfo
       tags: 
         - users
       summary: Get lobby information.
       description: Which players are in the game, can the game still be joined, etc.
-      operationId: ludoLobbyInfo
       responses:
         '200':
           description: A LobbyInfo object.
@@ -119,23 +124,24 @@ paths:
                 $ref: '#/components/schemas/LobbyInfo'
         '404':
           description: No such game exists.
+    
     patch:
+      operationId: ludoLobbyAddPlayer
       tags:
         - users
       summary: Join a game lobby.
-      description: Adds the specified player to a game lobby, returning an auto assigned player index.
-      operationId: ludoLobbyAddPlayer
+      description: Adds the specified player to a game lobby, returning an auto assigned slot index.
       parameters: 
-        - name: PlayerId
+        - name: Player
           in: header
-          description: Id of the user who wants to join.
+          description: The user who wants to join.
           schema:
             type: string
           required: true
       responses:
         '200':
-          description: |
-            Game joined. Here's your playerIndex for this game.
+          description: >
+            Game joined. Here's your slot index for this game.
             (Also sent if the player has already joined this game.)
           content:
             text/plain:
@@ -145,60 +151,71 @@ paths:
                 minimum: 0
                 maximum: 3
           #TODO: return game auth token
+        '400':
+          description: Player not specified.
         '404':
-          description: No such game and / or player id exists.
+          description: No such game and / or player exists.
         '409': # "This response is sent when a request conflicts with the current state of the server."
-          description: |
-            Can not join the game (for reason returned);
-            full - The lobby is full.
-            late - The game is already in progress, you are late to the party.
-            nope - Other unspecified reason.
-          content:
-            text/plain:
-              schema:
-                type: string
-                enum: [full, late, nope]
+          description: >
+            Unable to join game
+            (e.g. lobby is full or game already started).
+    
     post:
+      operationId: ludoGameStart
       tags: 
         - players
       summary: Start game.
       description: |
-        Starts the game (no longer in lobby state).
+        Starts the game.
+        Requires lobby state.
         Requires at least two players.
         Requires that all players are ready.
-      operationId: ludoGameStart
       responses:
         '204':
           description: OK
         '404':
           description: No such game exists.
         '409':
-          description: Not enough players, or not all players ready.
+          description: >
+            Unable to start game
+            (e.g. not enough players or not all players ready or
+            game already started or game already ended).
+      #TODO: require game auth token + 401 & 403 response
+    
     delete:
+      operationId: ludoLobbyLeave
       tags:
         - players
       summary: Leave lobby.
       description: When the last player leaves, the lobby itself is deleted.
-      operationId: ludoLobbyLeave
+      parameters: 
+        - name: Player
+          in: header
+          description: The player who wants to leave.
+          schema:
+            type: string
+          required: true
       responses:
         '204':
           description: OK
+        '400':
+          description: Player not specified.
         '404':
-          description: No such game and / or player id exists.
+          description: No such game and / or player exists.
         '409':
-          description: Player has already left / is not a member of this lobby.
+          description: Player is not a member of this lobby / has already left.
       #TODO: require game auth token + 401 & 403 response
 
-  /ludo/lobby/{gameId}/{playerIndex}:
+  /ludo/lobby/{gameId}/{slot}:
     parameters:
       - $ref: '#/components/parameters/gameIdPath'
-      - $ref: '#/components/parameters/playerIndexPath'
+      - $ref: '#/components/parameters/slotPath'
+    
     get:
+      operationId: ludoLobbyGetPlayerReady
       tags:
         - users
-      summary: Get Player ID and ready state.
-      description: Ready state and player ID for the player bound to the specified index.
-      operationId: ludoLobbyGetReady
+      summary: Get player and ready state for the specified lobby slot.
       responses:
         '200':
           description: OK
@@ -207,24 +224,26 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlayerReady'
         '400':
-          description: Bad playerIndex.
+          description: Bad slot.
         '404':
           description: No such game exists.
         '409':
-          description: Game already in progress.
+          description: Game not in setup stage (i.e. already in progress / ended).
       #TODO: require game auth token + 401 & 403 response
+    
     put:
+      operationId: ludoLobbySetPlayer
       tags:
         - players
-      summary: Set a player's playerIndex and ready status.
+      summary: Set a player's slot and ready status.
       description: |
-        Binds (or unbinds) a player id to a player index (thus determening the turn order) and sets the players ready status.
-        Cannot bind to an index which another player is currently bound to.
+        Binds (or unbinds) a player to a slot index and sets their ready status.
+        Cannot bind to an index which another player is currently bound to
+        (unless the new player has a reservation and the old player does not).
         All players in a lobby need to ready up before a game can start.
-        Use an index of -1 to unbind a player (implies not ready).
-      operationId: ludoLobbySetPlayer
+        Use slot -1 to unbind a player (implies not ready).
       requestBody:
-        description: Id of the player to bind to this player index and their ready status.
+        description: The player to bind this slot to and their ready status.
         required: true
         content:
           application/JSON:
@@ -234,11 +253,13 @@ paths:
         '204':
           description: OK (Also sent if no change occurred.)
         '400':
-          description: Bad playerIndex.
+          description: Bad input parameter.
         '404':
           description: No such game and / or player id exists.
         '409':
-          description: Player index occupied, or player id not in this lobby, or game already in progress.
+          description: >
+            Unable to bind to slot
+            (e.g. slot occupied or player isn't in the lobby or game already started / ended).
       #TODO: require game auth token + 401 & 403 response
   
   /ludo/board:
@@ -349,7 +370,7 @@ paths:
     get:
       tags:
         - users
-      summary: Get current player and die roll.
+      summary: Get current player (slot index) and die roll.
       description: |
         The state of a game (CurrentPlayer, CurrentDieRoll).
         Combine this with board state and lobby data to have a complete save.
@@ -364,15 +385,15 @@ paths:
         '404':
           description: No such game exists.
         '409':
-          description: Game has either not started yet or has already ended.
+          description: Game has not started / already ended.
     put:
       tags:
         - players
-      summary: Set current player and die roll.
+      summary: Set current player (slot index) and die roll.
       description: Setting current player and die roll can only be done while still in lobby.
       operationId: ludoSetCurrent
       requestBody:
-        description: Current player index and their die roll.
+        description: Current player (slot index) and their die roll.
         required: true
         content:
           application/JSON:
@@ -386,20 +407,20 @@ paths:
         '404':
           description: No such game exists.
         '409':
-          description: Game has already started (perhaps even ended).
+          description: Game has already started / ended.
       #TODO: require game auth token + 401 & 403 response
   
-  /ludo/game/{gameId}/{playerIndex}:
+  /ludo/game/{gameId}/{slot}:
     parameters:
       - $ref: '#/components/parameters/gameIdPath'
-      - $ref: '#/components/parameters/playerIndexPath'
+      - $ref: '#/components/parameters/slotPath'
     # get: decision making info
     # post: PassTurn!
     # delete: concede.
     get:
       tags:
         - users
-      summary: Get a TurnInfo object for the current player.
+      summary: Get a TurnInfo object for the current player (slot index).
       description: The TurnInfo object contains information on the current player's available moves.
       operationId: ludoGetTurnInfo
       responses:
@@ -426,7 +447,7 @@ paths:
         '204':
           description: OK
         '400':
-          description: Bad playerIndex.
+          description: Bad slot.
         '404':
           description: No such game exists.
         '409':
@@ -447,17 +468,17 @@ paths:
         '204':
           description: OK (Also sent if the player has already conceded and / or the game has ended.
         '400':
-          description: Bad playerIndex.
+          description: Bad slot.
         '404':
           description: No such game exists.
         '409':
           description: This player has already conceded and / or the game has ended.
       #TODO: require game auth token + 401 & 403 response
     
-  /ludo/game/{gameId}/{playerIndex}/{pieceIndex}:
+  /ludo/game/{gameId}/{slot}/{pieceIndex}:
     parameters:
       - $ref: '#/components/parameters/gameIdPath'
-      - $ref: '#/components/parameters/playerIndexPath'
+      - $ref: '#/components/parameters/slotPath'
       - $ref: '#/components/parameters/pieceIndexPath'
     # get: PieceInfo!
     # post: MovePiece! <---- put or patch or post?
@@ -467,7 +488,7 @@ paths:
       summary: Get a PieceInfo object.
       description: |
         A PieceInfo object describing state, movability, and collision / blocking for the piece.
-        Requires that playerIndex is that of the current player.
+        Requires that the slot index corresponds to the current player.
       operationId: ludoGetPieceInfo
       responses:
         '200':
@@ -477,7 +498,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PieceInfo'
         '400':
-          description: Bad player or piece id.
+          description: Bad slot or piece index.
         '404':
           description: No such game exists.
         '409':
@@ -490,7 +511,7 @@ paths:
       summary: Moves the piece.
       description: |
         Moves the piece according to the current die roll.
-        Requires that playerIndex is the current player and that pieceIndex is a movable piece.
+        Requires that the slot index corresponds to the current player and that pieceIndex is a movable piece.
       operationId: ludoMovePiece
       responses:
         '204':
@@ -515,10 +536,10 @@ paths:
         By passing in a gamestate, you can get a description of how a players pieces can move on the board - as a PieceInfo array.
       operationId: ludoCalculateMoves
       parameters:
-        - name: player
+        - name: slot
           in: query
           required: true
-          description: The player to calculate moves for.
+          description: The player (slot index) to calculate moves for.
           schema:
             type: integer
             format: int32
@@ -569,11 +590,11 @@ components:
       description: Id of a game.
       schema:
         type: string
-    playerIndexPath:
-      name: playerIndex
+    slotPath:
+      name: slot
       in: path
       required: true
-      description: Game specific playerIndex.
+      description: Game specific slot.
       schema:
         type: integer
         format: int32
@@ -603,83 +624,88 @@ components:
         unlisted - anyone with the gameId can join, but game is not publicly listed.
         friendsOnly - game is publicly listed, but only friends can join. (wip)
         inviteOnly - game is not publicly listed and can only be joined by invite. (wip)
-        reservations - public game where anyone can join; however playerIndexes are pre-associated
+        reservations - public game where anyone can join; however slotes are pre-associated
         with playerIds such that if those players join they are automatically granted their pre-associated
         index, vacating any previous occupant from that slot. (wip)
-    LobbySlotReservation:
+    PlayerReady:
       type: object
-      parameters:
-        playerId:
+      required:
+        - player
+        - ready
+      properties:
+        player:
           type: string
-          description: Player id that this slot is reserved to.
+        ready:
+          type: boolean
+    LobbyReservation:
+      type: object
+      required:
+        - player
+        - slot
+      properties:
+        player:
+          type: string
+        slot:
+          description: Slot index, or -1 if the reservation is slot agnostic.
+          type: integer
+          format: int32
+          minimum: -1
+          maximum: 3
         strict:
           type: boolean
           description: >
             If the reservation is strict, then no other player may take this slot.
-            Otherwise it functions as a normal slot, except that the player it's
-            reserved to may evict other players to claim it.
-    LobbySlot:
-      type: object
-      required:
-        - occupant
-      properties:
-        occupant:
-          type: string
-          description: Player id of the occupant of this slot; otherwise empty.
-        reserved:
-          $ref: '#/components/schemas/LobbySlotReservation'
+            Otherwise it functions as a normal slot, except that a player that has
+            a reservation to may evict non-reserved players to claim it.
     LobbyListEntry:
       type: object
-      required:
-        - gameId
-        - access
       properties:
         gameId:
           type: string
         access:
           $ref: '#/components/schemas/LobbyAccess'
         slots:
+          description: >
+            An array of players in slot index order.
+            Empty slots are represented by empty array items.
           type: array
-          description: An array of LobbySlot objects.
           items:
-            $ref: '#/components/schemas/LobbySlot'
-        #TODO: add more properties..? <-------------------------
-    PlayerReady:
-      type: object
-      required:
-        - playerId
-        - ready
-      properties:
-        playerId:
-          type: string
-        ready:
-          type: boolean
+            type: string
+        others:
+          description: >
+            An array of players that are not currently assigned to any slot.
+          type: array
+          items:
+            type: string
+        #TODO: add reservation info <-------------------------
     LobbyInfo:
       type: object
-      required:
-        - state
-        - players
       properties:
         state:
           $ref: '#/components/schemas/GameState'
-        players:
+        access:
+          $ref: '#/components/schemas/LobbyAccess'
+        slots:
+          description: >
+            An array of players and ready status in slot index order.
+            Empty slots are represented by empty array items.
           type: array
           items:
-            type: object
-            properties:
-              id:
-                type: string
-              index:
-                type: integer
-                format: int32
-                minimum: -1
-                maximum: 3
+            $ref: '#/components/schemas/PlayerReady'
+        others:
+          description: >
+            An array of players that are not currently assigned to any slot.
+          type: array
+          items:
+            type: string
+        reservations:
+          description: An array of all slot reservations in this lobby.
+          type: array
+          items:
+            $ref: '#/components/schemas/LobbyReservation'
         #TODO: add more properties..?
     GameListEntry:
       type: object
-      required:
-        - gameId
-        - state
       properties:
         gameId:
           type: string
@@ -687,10 +713,10 @@ components:
           $ref: '#/components/schemas/GameState'
         winner:
           type: string
-          description: Winning player's id (or omitted / empty if no winner has been decided).
+          description: Winning player (omitted / empty if no winner has been decided).
         players:
           type: array
-          description: An array of player ids that are in this game / lobby.
+          description: An array of players that are in this game / lobby.
           items:
             type: string
         #TODO: add more properties..?
@@ -753,7 +779,7 @@ components:
         These player relative board positions describe how far a piece has moved.
         To translate them into absolute board positions, the length of the board and the index of the player must also be known.
         Assuming the distance is less than the board length (i.e. if the piece is still on the shared competative track) the formula looks like so;
-        position = (distance + playerIndex * boardLength / 4) % boardLength
+        position = (distance + slot * boardLength / 4) % boardLength
       items:
         type: integer
         format: int32
@@ -761,7 +787,7 @@ components:
         maximum: 90 # based on maximum allowed boardLength
     BoardState:
       type: array
-      description: An array of piece distance arrays (one for each player index).
+      description: An array of piece distance arrays (one for each player, i.e. slot index).
       items:
         $ref: '#/components/schemas/PieceDistances'
     PlayerDie:
@@ -782,6 +808,26 @@ components:
           format: int32
           minimum: 1
           maximum: 6
+    PlayerSlot:
+      type: object
+      properties:
+        player:
+          type: string
+        slot:
+          description: Slot index, or -1 if not assigned to any slot.
+          type: integer
+          format: int32
+          minimum: -1
+          maximum: 3
+    LobbySave:
+      type: object
+      required:
+        - players
+      properties:
+        players:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayerSlot'
     GameSave:
       type: object
       required:
@@ -794,7 +840,7 @@ components:
         current:
           $ref: '#/components/schemas/PlayerDie'
         lobby:
-          $ref: '#/components/schemas/LobbyInfo'
+          $ref: '#/components/schemas/LobbySave'
         #TODO is any data missing to make this a complete game save?
     TurnInfo:
       type: object
@@ -860,7 +906,7 @@ components:
               format: int32
               minimum: 0
               maximum: 3
-              description: Zero-based player index.
+              description: Zero-based slot index.
             piece:
               type: integer
               format: int32

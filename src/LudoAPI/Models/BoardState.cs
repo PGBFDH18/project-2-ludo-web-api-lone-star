@@ -2,7 +2,7 @@
 {
     public class BoardState
     {
-        // [playerIndex][pieceIndex]
+        // [slotIndex][pieceIndex]
         public int[][] PlayerPieces { get; set; } 
     }
 }

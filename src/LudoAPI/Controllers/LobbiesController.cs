@@ -1,61 +1,70 @@
-﻿using System;
+﻿using Ludo.WebAPI.Models;
+using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using Ludo.WebAPI.Models;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 
-namespace LudoWebAPI.Controllers
+// Placeholder: Done
+// Proper Code: TODO
+namespace Ludo.WebAPI.Controllers
 {
     [Route("ludo/[controller]")]
     [ApiController]
-    public class LobbiesController : ControllerBase
+    public class LobbiesController : LudoControllerBase
     {
-        //TODO; just testing stuff...
-        [HttpGet]
-        public ActionResult<IEnumerable<LobbyListEntry>> Get([FromQuery]Show show, [FromQuery]string[] playerId)
+        // operationId: ludoListLobbies
+        // 200 response: TODO
+        // 400 response: Done
+        // 404 response: Done
+        [HttpGet] public ActionResult<IEnumerable<LobbyListEntry>> Get (
+            [FromQuery]string show, [FromQuery]string[] player)
         {
-            //TODO
-            return Placeholder();
-
+            Show eShow = 0;
+            if (!(string.IsNullOrEmpty(show) || Enum.TryParse(show, true, out eShow)))
+                return Status(400);
+            if (player?.All(IsValidPlayerId) == false)
+                return Status(404);
+            
+            return Placeholder(); //TODO
+            
             ActionResult<IEnumerable<LobbyListEntry>> Placeholder()
-                => new LobbyListEntry[] {
-                    new LobbyListEntry {
-                        GameId = show.ToString(),
-                        Access = ModelState.IsValid ? LobbyAccess.@public : LobbyAccess.unlisted,
-                        Slots = new LobbySlot[] {
-                            new LobbySlot { Occupant = playerId?.Length >= 1 ? playerId[0] : null },
-                            new LobbySlot { Occupant = playerId?.Length >= 2 ? playerId[1] : null },
-                }   }   };
+            => new LobbyListEntry[] {
+                new LobbyListEntry {
+                    GameId = eShow.ToString(),
+                    Access = ModelState.IsValid ? LobbyAccess.@public : LobbyAccess.unlisted,
+                    Slots = new string[] {
+                        "placeholder",
+                        player?.Length >= 1 ? player[0] : null, // for experimentation
+                        player?.Length >= 2 ? player[1] : null,
+                        player?.Length >= 3 ? player[1] : null,
+            }   }   };
         }
 
-        [HttpPost]
-        public ActionResult<string> Post([FromHeader]string playerId)
+        // operationId: ludoCreateLobby
+        // 201 response: Done
+        // 400 response: Done
+        // 404 response: Done
+        [HttpPost] public ActionResult<string> Post (
+            [FromHeader]string player)
         {
-            if (string.IsNullOrEmpty(playerId))
-            {
-                Response.StatusCode = StatusCodes.Status400BadRequest;
-                return null;
-            }
-            else if (!IsValidPlayerId(playerId))
-            {
-                Response.StatusCode = StatusCodes.Status404NotFound;
-                return null;
-            }
-            else
-            {
-                Response.StatusCode = StatusCodes.Status201Created;
-                //TODO
-                return $"placeholder ({playerId})";
-            }
+            if (TryCreateLobby(player, out string gameId))
+                return Status(201, gameId);
+            // else:
+            if (string.IsNullOrEmpty(player))
+                return Status(400);
+            if (!IsValidPlayerId(player))
+                return Status(404);
+            return Status(500);
         }
 
-        //TODO: refactor out as a dependency injected component
-        private bool IsValidPlayerId(string player)
+        // ===================================================================
+
+        //TODO: refactor out to a dependency injected component
+        private bool TryCreateLobby(string player, out string gameId)
         {
             //TODO
-            return true;
+            gameId = $"placeholder ({player})";
+            return player != "test"; // just for experimentation
         }
 
         public enum Show
