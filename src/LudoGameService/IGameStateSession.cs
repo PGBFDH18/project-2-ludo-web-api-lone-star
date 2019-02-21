@@ -26,7 +26,7 @@
     // and in the castee the type check is simply "return this" - which is a compile time verified.
 
     // I put the shared features in a separate interface to make the above more clear. No other reason.
-    internal interface ISharedGSS
+    public interface ISharedGSS
     {
         // An array of encoded userIds, in slot order, with null for empty slots.
         IUserIdArray Slots { get; }

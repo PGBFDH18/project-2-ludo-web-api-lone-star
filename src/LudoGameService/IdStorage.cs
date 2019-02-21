@@ -33,6 +33,8 @@ namespace Ludo.GameService
             return id;
         }
 
+        // ALL these methods accept partial Ids, since they are expanded to complete ids as needed.
+
         public void AddOrSet(in Id id, TData data)
             => dict[id.GetComplete(MinEncodeLength)] = data;
 

@@ -21,7 +21,7 @@ namespace Ludo.WebAPI.Components
             bstate = default;
             var game = ludoService.Games.FirstOrDefault((kvp) => kvp.Key.Encoded == gameId).Value;
             if (game == null)
-                return new ErrorCode { Code = ErrorCodes.Err1GameNotFound };
+                return new ErrorCode { Code = ErrorCodes.Err01GameNotFound };
 
             //TODO
             throw new NotImplementedException();

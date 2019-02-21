@@ -9,23 +9,17 @@ namespace Ludo.GameService
         // TODO: move to ctor? set minEncodeLength?
         private readonly IdStorage<GameData> ids = new IdStorage<GameData>();
 
-        // TODO: inject validation?
-        // TODO: Error codes.
-        public bool TryCreateGame(GameData data, out Id id)
-        {
-            if (data == null)
-            {   id = default;
-                return false;
-            }
-            else
-            {   id = ids.Add(data);
-                return true;
-            }
-        }
+        // inject validation?
+        public Id CreateGame(GameData data)
+            => data == null ? default : ids.Add(data);
 
         // Accepts partial Ids.
         public bool ContainsId(in Id id)
             => ids.Contains(in id);
+
+        // Accepts partial Ids.
+        public GameData Get(in Id id)
+            => ids.TryGet(in id, out var data) ? data : null;
 
         //public bool TryGetUserName(Id id, out string userName)
         //    => ids.TryGet(id, out var data) & (userName = data?.UserName) != null;

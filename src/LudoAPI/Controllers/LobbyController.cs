@@ -13,10 +13,12 @@ namespace Ludo.WebAPI.Controllers
     [ApiController]
     public class LobbyController : LudoControllerBase
     {
+        private readonly ILudoService ludoService;
         private readonly Components.IIsKnown isKnown;
 
         public LobbyController(ILudoService ludoService, Components.IIsKnown isKnown)
         {
+            this.ludoService = ludoService;
             this.isKnown = isKnown;
         }
 
@@ -30,11 +32,10 @@ namespace Ludo.WebAPI.Controllers
             Show eShow = 0;
             if (!(string.IsNullOrEmpty(show) || Enum.TryParse(show, true, out eShow)))
                 return BadRequest();
-            if (TryListLobbies(eShow, userId, out var result))
-                return new ActionResult<IEnumerable<LobbyListEntry>>(result);
             if (userId?.All(isKnown.UserId) == false)
                 return NotFound();
-            return Status(500);
+            var result = ListLobbies(eShow, userId);
+            return new ActionResult<IEnumerable<LobbyListEntry>>(result);
         }
 
         // operationId: ludoCreateLobby
@@ -46,9 +47,10 @@ namespace Ludo.WebAPI.Controllers
         {
             if (string.IsNullOrEmpty(userId))
                 return BadRequest();
-            if (TryCreateLobby(userId, out string gameId))
+            var err = TryCreateLobby(userId, out string gameId);
+            if (err == null)
                 return Created(gameId, null);
-            if (!isKnown.UserId(userId))
+            if (err.Code == ErrorCodes.Err02UserNotFound)
                 return NotFound();
             return Status(500);
         }
@@ -56,28 +58,46 @@ namespace Ludo.WebAPI.Controllers
         // ===================================================================
 
         //TODO: refactor out to a dependency injected component
-        private bool TryCreateLobby(string userId, out string gameId)
+        private ErrorCode TryCreateLobby(string userId, out string gameId)
         {
+            int slots = GameLogic.SessionFactory.MaxPlayers; // <-- TODO
+            return ludoService.TryCreateLobby(userId, slots, out gameId);
             //TODO
-            gameId = $"placeholder({userId})";
-            return userId != "test"; // just for experimentation
+            //gameId = $"placeholder({userId})";
+            //return userId != "test"; // just for experimentation
         }
 
         //TODO: refactor out to a dependency injected component
-        private bool TryListLobbies(Show show, string[] users, out IEnumerable<LobbyListEntry> result)
+        private IEnumerable<LobbyListEntry> ListLobbies(Show show, string[] users)//, out IEnumerable<LobbyListEntry> result)
         {
+            // a bit of a Linq mess here...
+            return ludoService.Games
+                .Where(kvp => kvp.Value.GameState <= GameService.GameState.setup
+                && kvp.Value.TryGetSetup?.Slots != null
+                && (show == Show.all
+                || (show == Show.full && kvp.Value.TryGetSetup.Slots.OpenCount == 0)
+                || (show == Show.open && kvp.Value.TryGetSetup.Slots.OpenCount > 0)
+                || (show == Show.penultimate && kvp.Value.TryGetSetup.Slots.OpenCount == 1))
+                && (users == null || users.Length == 0 || kvp.Value.TryGetSetup.Slots.Any(u => users.Contains(u))))
+                .Select(kvp => new LobbyListEntry
+                {
+                    GameId = kvp.Key.Encoded,
+                    Slots = kvp.Value.TryGetSetup.Slots.ToArray(),
+                    Others = kvp.Value.TryGetSetup.Slots.Others,
+                    Access = LobbyAccess.@public // TODO: LobbyAccess
+                });
             //TODO
-            result = new LobbyListEntry[] {
-                new LobbyListEntry {
-                    GameId = show.ToString(),
-                    Access = ModelState.IsValid ? LobbyAccess.@public : LobbyAccess.unlisted,
-                    Slots = new string[] {
-                        "placeholder",
-                        users?.Length >= 1 ? users[0] : null, // for experimentation
-                        users?.Length >= 2 ? users[1] : null,
-                        users?.Length >= 3 ? users[1] : null,
-            }   }   };
-            return !users.Contains("test");
+            //result = new LobbyListEntry[] {
+            //    new LobbyListEntry {
+            //        GameId = show.ToString(),
+            //        Access = ModelState.IsValid ? LobbyAccess.@public : LobbyAccess.unlisted,
+            //        Slots = new string[] {
+            //            "placeholder",
+            //            users?.Length >= 1 ? users[0] : null, // for experimentation
+            //            users?.Length >= 2 ? users[1] : null,
+            //            users?.Length >= 3 ? users[1] : null,
+            //}   }   };
+            //return !users.Contains("test");
         }
 
         public enum Show

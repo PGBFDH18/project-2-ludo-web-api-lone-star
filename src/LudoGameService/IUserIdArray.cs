@@ -6,5 +6,7 @@ namespace Ludo.GameService
     {
         string this[int i] { get; }
         int Length { get; }
+
+        int OpenCount { get; }
     }
 }

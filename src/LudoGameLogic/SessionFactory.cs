@@ -22,14 +22,26 @@ namespace Ludo.GameLogic
                 => startingPlayer == RANDOM_STARTING_PLAYER | unchecked((uint)startingPlayer < (uint)playerCount);
         }
 
+        public static class Validate
+        {
+            public static void PlayerCount(int playerCount)
+            {
+                if (!IsValid.PlayerCount(playerCount))
+                    throw new ArgumentOutOfRangeException(nameof(playerCount), $"Min: {MinPlayers}, Max: {MaxPlayers}.");
+            }
+            public static void StartingPlayer(int startingPlayer, int playerCount)
+            {
+                if (!IsValid.StartingPlayer(startingPlayer, playerCount))
+                    throw new ArgumentOutOfRangeException(nameof(startingPlayer));
+            }
+        }
+
         
         public static ISession New(int playerCount = 2, Rules rules = default(Rules), int startingPlayer = RANDOM_STARTING_PLAYER, int boardLength = BoardInfo.DEFAULT_LENGTH)
         {
-            if (!IsValid.PlayerCount(playerCount))
-                throw new ArgumentOutOfRangeException(nameof(playerCount));
-            if (!IsValid.StartingPlayer(startingPlayer, playerCount))
-                throw new ArgumentOutOfRangeException(nameof(startingPlayer));
-            BoardInfo.Validate(boardLength); // <-- throws if invalid.
+            Validate.PlayerCount(playerCount);
+            Validate.StartingPlayer(startingPlayer, playerCount);
+            BoardInfo.Validate(boardLength);
 
             return new Session(playerCount, new BoardInfo(boardLength), rules, startingPlayer);
         }

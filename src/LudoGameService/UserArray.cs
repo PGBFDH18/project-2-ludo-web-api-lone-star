@@ -27,6 +27,8 @@ namespace Ludo.GameService
 
         public int Length => players.Length;
 
+        int IUserIdArray.OpenCount => 0;
+
         public IEnumerator<string> GetEnumerator()
             => players.AsEnumerable().GetEnumerator();
 

@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace Ludo.WebAPI.Models
 {
@@ -8,6 +9,6 @@ namespace Ludo.WebAPI.Models
         [JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))] // serialize as string!
         public LobbyAccess Access { get; set; }
         public string[] Slots { get; set; }
-        public string[] Others { get; set; }
+        public IReadOnlyList<string> Others { get; set; }
     }
 }

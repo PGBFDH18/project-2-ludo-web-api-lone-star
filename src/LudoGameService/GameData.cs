@@ -12,7 +12,11 @@ namespace Ludo.GameService
         // active state data
         // finished state data
 
-        public GameData() { }
+        public GameData(SetupSession lobby)
+        {
+            if (lobby != null)
+                _game = lobby;
+        }
 
         public GameState GameState => Game.State;
 
@@ -24,16 +28,18 @@ namespace Ludo.GameService
             slotIndex = -1;
             var g = _game.Setup;
             if (g == null)
-                return new Error(ErrorCodes.Err3NotInSetupState);
+                return new Error(ErrorCodes.Err03NotInSetupState);
             if (!g.TryAddUser(userId, out slotIndex))
-                return new Error(ErrorCodes.Err4LobbyIsFull);
+                return new Error(ErrorCodes.Err04LobbyIsFull);
             if (!(_game == g || UserIsPlayer(userId)))
-                return new Error(ErrorCodes.Err3NotInSetupState);
+                return new Error(ErrorCodes.Err03NotInSetupState);
             return null;
         }
 
         public bool UserIsPlayer(string userId)
             => _game.Shared?.Slots.Contains(userId) == true;
+
+        public SetupSession TryGetSetup => _game.Setup;
 
         internal IGameStateSession Game => _game;
         private volatile IGameStateSession _game = TransitionState.Creating;

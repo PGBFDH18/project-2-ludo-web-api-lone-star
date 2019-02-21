@@ -45,7 +45,7 @@ namespace Ludo.WebAPI.Controllers
             var err = TryJoinLobby(gameId, userId, out int slot);
             if (err == null)
                 return slot;
-            if (err.Code == ErrorCodes.Err1GameNotFound || err.Code == ErrorCodes.Err2UserNotFound)
+            if (err.Code == ErrorCodes.Err01GameNotFound || err.Code == ErrorCodes.Err02UserNotFound)
                 return NotFound();
             return Conflict();
             //if (!IsKnownGameId(gameId) || !IsKnownUserId(userId))
@@ -186,10 +186,10 @@ namespace Ludo.WebAPI.Controllers
         {
             slot = -1;
             if (!ludoService.Users.ContainsId(Id.Partial(userId)))
-                return new ErrorCode { Code = ErrorCodes.Err2UserNotFound };
+                return new ErrorCode { Code = ErrorCodes.Err02UserNotFound };
             var game = ludoService.Games.FirstOrDefault((kvp) => kvp.Key.Encoded == gameId).Value;
             if (game == null)
-                return new ErrorCode { Code = ErrorCodes.Err1GameNotFound };
+                return new ErrorCode { Code = ErrorCodes.Err01GameNotFound };
             return game.TryAddUser(userId, out slot);
             //TODO
             //slot = 0;

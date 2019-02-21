@@ -26,7 +26,7 @@ namespace Ludo.WebAPI.Controllers
             var err = boardState.TryGetBoardState(gameId, out Models.BoardState bstate);
             if (err == null)
                 return bstate;
-            if (err.Code == ErrorCodes.Err1GameNotFound)
+            if (err.Code == ErrorCodes.Err01GameNotFound)
                 return NotFound();
             return Conflict();
             //if (IsKnownGameId(gameId))
