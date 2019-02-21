@@ -2,8 +2,11 @@
 {
     public enum GameState
     {
-        setup = 0,
-        ingame = 1,
-        finished = 2,
+        creating = 0,
+        setup = 1,
+        starting = 2,
+        ingame = 3,
+        ending = 4,
+        finished = 5,
     }
 }

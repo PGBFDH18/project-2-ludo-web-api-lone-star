@@ -6,22 +6,37 @@ namespace Ludo.GameLogic
 {
     public struct BoardInfo
     {
-        // ctor
-        public BoardInfo(int boardLength = 40) // boardLength must be a multiple of 8.
-        {
-            Length = boardLength;
+        public const int DEFAULT_LENGTH = 40;
+        public static readonly int MinLength = 24;
+        public static readonly int MaxLength = 80;
+
+        public static bool IsValidLength(int boardLength)
+            => boardLength >= MinLength & boardLength <= MaxLength & (boardLength % ENDZONE_DIVISOR == 0);
+
+        public static void Validate(int boardLength)
+        {   if (boardLength < MinLength | boardLength > MaxLength) throw new ArgumentOutOfRangeException(nameof(boardLength));
+            if (boardLength % ENDZONE_DIVISOR != 0) throw new ArgumentException("Must be a multiple of 8.", nameof(boardLength));
         }
+
+        // ctor - does NOT validate the length argument!
+        public BoardInfo(int boardLength = DEFAULT_LENGTH) // boardLength must be a multiple of 8.
+            => Length = boardLength;
 
         // length of the shared track around the board (excluding the collision-free end-zones leading to the goal).
         public int Length { get; }
 
-        // width and height of the board (Size x Size) (useful for drawing a GUI)
+        // is this instance valid? (Was it initialized with a valid length argument?)
+        public bool IsValid
+            => IsValidLength(Length);
+
+        // width and height of a board (Size x Size) (helper method useful for drawing a GUI)
+        [Obsolete] // TODO: move somewhere else - feels dirty to have a GUI related method here.
         public int Size
-            => Length / 4 + 1;
+            => Length / 4 + 1; // Assumes standard shaped board with BASE_COUNT == 4, Size property is not well defined otherwise.
 
         // length of the collision-free end-zones leading to the goal (goal square inclusive).
         public int EndZoneLength
-            => Length / 8;
+            => Length / ENDZONE_DIVISOR;
 
         // length of the board + length of end-zone.
         public int GoalDistance
@@ -29,7 +44,7 @@ namespace Ludo.GameLogic
 
         // where on the board does player X start (when they move a piece of from their base).
         public int StartPosition(int player)
-            => (Length / 4) * player;
+            => (Length / BASE_COUNT) * player;
 
         // what board position corresponds to the first end-zone position of player X.
         public int EndZonePosition(int player)
@@ -46,9 +61,12 @@ namespace Ludo.GameLogic
             && position != GoalPosition(1)
             && position != GoalPosition(2);
 
-        // these positions are reserved but not currently used - they are not considered valid positions! (Base and Goal have position == -1)
+        // these positions are reserved. Currently not used they are not considered valid positions! (Base and Goal have position == -1)
         internal int GoalPosition(int player)
             => Length + (player + 1) * EndZoneLength - 1;
+
+        private const int BASE_COUNT = 4;
+        private const int ENDZONE_DIVISOR = 8;
     }
 }
 /*

@@ -1,11 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Ludo.GameService;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Ludo.WebAPI.Controllers
 {
     [Route("ludo")]
     [ApiController]
-    public class LudoController : ControllerBase
+    public class LudoController : LudoControllerBase
     {
+        public LudoController(ILudoService ludoService)
+        { }
+
         [HttpGet]
         public void Get()
         {

@@ -6,6 +6,10 @@ namespace Ludo.WebAPI
     public abstract class ExtendedControllerBase : ControllerBase
     {
         protected ExtendedControllerBase() { }
+        
+        // ...warning, use with care...
+        protected string AppBaseUrl
+        => $"{Request.Scheme}://{Request.Host}{Request.PathBase}";
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected dynamic Status(int statusCode)

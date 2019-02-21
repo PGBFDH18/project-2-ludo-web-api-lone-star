@@ -26,7 +26,7 @@ namespace Ludo.WebAPI
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
-            //services.AddSingleton<ITODO, TODO>();
+            services.AddSingleton<GameService.ILudoService, GameService.LudoService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

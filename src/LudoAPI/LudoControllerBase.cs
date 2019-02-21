@@ -1,21 +1,12 @@
-﻿namespace Ludo.WebAPI
+﻿using Ludo.GameService;
+
+namespace Ludo.WebAPI
 {
     public abstract class LudoControllerBase : ExtendedControllerBase
     {
+        protected internal const string ROUTE_gameId = "{gameId:required:minLength(2)}";
+        protected internal const string ROUTE_slotStr = "{slotStr:required}";
+        
         protected LudoControllerBase() { }
-
-        //TODO: refactor out to a dependency injected component
-        protected bool IsValidGameId(string gameId)
-        {
-            //TODO
-            return gameId != "test"; // just for experimentation
-        }
-
-        //TODO: refactor out to a dependency injected component
-        protected bool IsValidPlayerId(string player)
-        {
-            //TODO
-            return player != "test"; // just for experimentation
-        }
     }
 }

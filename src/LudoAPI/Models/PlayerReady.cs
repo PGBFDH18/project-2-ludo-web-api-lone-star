@@ -5,7 +5,7 @@ namespace Ludo.WebAPI.Models
     public class PlayerReady
     {
         [Required]
-        public string Player { get; set; }
+        public string UserId { get; set; }
         [Required]
         public bool Ready { get; set; }
     }

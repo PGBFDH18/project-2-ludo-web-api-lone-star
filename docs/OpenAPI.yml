@@ -20,6 +20,8 @@ tags:
     description: Operations available to all users.
   - name: players
     description: Operations available to players of a game.
+  #TODO: "users" now encompases both registered and unregistered users...
+  # ... add "anyone" tag for operations that require no auth?
 
 paths:
   /ludo:
@@ -35,7 +37,87 @@ paths:
         '418':
           description: Coffe? U no can has!
 
-  /ludo/lobbies:
+  /ludo/user:
+    get:
+      operationId: ludoListUsers
+      tags:
+        - users
+      summary: Get a list of users, optionally filtered.
+      parameters:
+        - name: userName
+          in: query
+          description: >
+            UserName of a user to search for.
+            Will return either a 200 reponse with a single array entry (exist),
+            or 404 (does not exist).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A list of user ids matching the request.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        '404':
+          description: No matching user(s) exist.
+    
+    post:
+      operationId: ludoCreateUser
+      tags:
+        - users
+      summary: Creates a new user.
+      parameters:
+        - name: UserName
+          in: header
+          description: The UserName of the user to create (need to be unique).
+          schema:
+            type: string
+      responses:
+        '201':
+          description: User created (see Location header).
+          #TODO: add auth token?
+        '400':
+          description: Missing or empty UserName parameter.
+        '409':
+          description: UserName was not unique.
+        '422':
+          description: Non-acceptable UserName parameter (see body for details).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorCode'
+          #TODO: add detailed response, e.g. too short/long, profane, etc.
+  
+  /ludo/user/{userId}:
+    parameters:
+      - $ref: '#/components/parameters/userIdPath'
+    
+    get:
+      operationId: ludoGetUser
+      tags: 
+        - users
+      summary: Get information about a user.
+      responses:
+        '200':
+          description: A UserInfo object with information about the user.
+          content:
+            application/json:
+              items:
+                $ref: '#/components/schemas/UserInfo'
+        '404':
+          description: No such user exists.
+      #TODO: add more info / statistics here? or add sub-paths with more info?
+    
+    #put: ...
+    #TODO: add ability to make user changes - requires some form of auth!
+    
+    #delete: ...
+    #TODO: should be a delete operation - requires some form of auth!
+
+  /ludo/lobby:
     get:
       operationId: ludoListLobbies
       tags:
@@ -55,17 +137,18 @@ paths:
             type: string
             default: open
             enum: [open, full, all, penultimate]
-        - name: player
+        - name: userId
           in: query
           description: >
-            Filter to lobbies where at least one specified player is present (e.g. your friends).
+            Filter to lobbies where at least one specified user is present
+            (e.g. your friends).
           schema:
             type: array
             items:
               type: string
       responses:
         '200':
-          description: A JSON array of LobbyListEntry objects
+          description: A JSON array of LobbyListEntry objects.
           content:
             application/json:
               schema:
@@ -84,7 +167,7 @@ paths:
       summary: Creates a new lobby.
       description: Creates a new lobby and joins it as player 0.
       parameters: 
-        - name: Player
+        - name: UserId
           in: header
           description: The user creating the lobby.
           schema:
@@ -93,12 +176,8 @@ paths:
       responses:
         '201': # Created
           description: >
-            Returns the id of the newly created game.
+            Returns the id of the newly created game (see Location header).
             The creator of a lobby is always assigned to slot 0.
-          content:
-            text/plain:
-              schema:
-                type: string
         '400':
           description: Player not specified.
         '404':
@@ -110,7 +189,7 @@ paths:
       - $ref: '#/components/parameters/gameIdPath'
     
     get:
-      operationId: ludoLobbyInfo
+      operationId: ludoGetLobby
       tags: 
         - users
       summary: Get lobby information.
@@ -126,13 +205,13 @@ paths:
           description: No such game exists.
     
     patch:
-      operationId: ludoLobbyAddPlayer
+      operationId: ludoJoinLobby
       tags:
         - users
       summary: Join a game lobby.
       description: Adds the specified player to a game lobby, returning an auto assigned slot index.
       parameters: 
-        - name: Player
+        - name: UserId
           in: header
           description: The user who wants to join.
           schema:
@@ -141,14 +220,15 @@ paths:
       responses:
         '200':
           description: >
-            Game joined. Here's your slot index for this game.
+            Game joined. Here's your slot index for this game,
+            or -1 if not automatically assigned to any slot.
             (Also sent if the player has already joined this game.)
           content:
             text/plain:
               schema:
                 type: integer
                 format: int32
-                minimum: 0
+                minimum: -1
                 maximum: 3
           #TODO: return game auth token
         '400':
@@ -159,9 +239,10 @@ paths:
           description: >
             Unable to join game
             (e.g. lobby is full or game already started).
+          #TODO: supply exact reason in body (ErrorCode object)
     
     post:
-      operationId: ludoGameStart
+      operationId: ludoStartGame
       tags: 
         - players
       summary: Start game.
@@ -171,8 +252,8 @@ paths:
         Requires at least two players.
         Requires that all players are ready.
       responses:
-        '204':
-          description: OK
+        '201':
+          description: Game started (see Location header).
         '404':
           description: No such game exists.
         '409':
@@ -183,13 +264,13 @@ paths:
       #TODO: require game auth token + 401 & 403 response
     
     delete:
-      operationId: ludoLobbyLeave
+      operationId: ludoLeaveLobby
       tags:
         - players
       summary: Leave lobby.
       description: When the last player leaves, the lobby itself is deleted.
       parameters: 
-        - name: Player
+        - name: UserId
           in: header
           description: The player who wants to leave.
           schema:
@@ -197,13 +278,13 @@ paths:
           required: true
       responses:
         '204':
-          description: OK
+          description: >
+            User has either been removed from the lobby (change),
+            or user wasn't a member of this lobby (no change).
         '400':
-          description: Player not specified.
+          description: UserId not specified.
         '404':
-          description: No such game and / or player exists.
-        '409':
-          description: Player is not a member of this lobby / has already left.
+          description: No such game and / or user exists.
       #TODO: require game auth token + 401 & 403 response
 
   /ludo/lobby/{gameId}/{slot}:
@@ -212,7 +293,7 @@ paths:
       - $ref: '#/components/parameters/slotPath'
     
     get:
-      operationId: ludoLobbyGetPlayerReady
+      operationId: ludoGetPlayerReady
       tags:
         - users
       summary: Get player and ready state for the specified lobby slot.
@@ -232,7 +313,7 @@ paths:
       #TODO: require game auth token + 401 & 403 response
     
     put:
-      operationId: ludoLobbySetPlayer
+      operationId: ludoSetPlayerReady
       tags:
         - players
       summary: Set a player's slot and ready status.
@@ -251,24 +332,24 @@ paths:
               $ref: '#/components/schemas/PlayerReady'
       responses:
         '204':
-          description: OK (Also sent if no change occurred.)
+          description: OK - Also sent if no change occurred.
         '400':
           description: Bad input parameter.
         '404':
-          description: No such game and / or player id exists.
+          description: No such game and / or user and / or slot exists.
         '409':
           description: >
             Unable to bind to slot
-            (e.g. slot occupied or player isn't in the lobby or game already started / ended).
+            (e.g. slot occupied or user not in the lobby or game already started / ended).
       #TODO: require game auth token + 401 & 403 response
   
   /ludo/board:
     get:
+      operationId: ludoGetBoardInfo
       tags:
         - users
       summary: Get a BoardInfo object.
       description: Extrapolates standard board information from a boardLength.
-      operationId: ludoGetBoardInfo
       parameters:
         - name: length
           in: query
@@ -292,12 +373,13 @@ paths:
   /ludo/board/{gameId}:
     parameters: 
       - $ref: '#/components/parameters/gameIdPath'
+    
     get:
+      operationId: ludoGetBoardState
       tags:
         - users
       summary: Get current board state.
       description: TODO # <----------------------------------
-      operationId: ludoGetBoardState
       responses:
         '200':
           description: OK
@@ -309,6 +391,7 @@ paths:
           description: No such game exists.
         '409':
           description: Game has either not started or has already ended.
+    
     put:
       tags:
         - players
@@ -385,7 +468,7 @@ paths:
         '404':
           description: No such game exists.
         '409':
-          description: Game has not started / already ended.
+          description: Game has not started or has already ended.
     put:
       tags:
         - players
@@ -582,7 +665,14 @@ paths:
           description: bad input parameter
 
 components:
-  parameters: 
+  parameters:
+    playerPath:
+      name: player
+      in: path
+      required: true
+      description: A player id.
+      schema:
+        type: string
     gameIdPath:
       name: gameId
       in: path
@@ -611,6 +701,16 @@ components:
         minimum: 0
         maximum: 3
   schemas:
+    ErrorCode:
+      type: object
+      parameters:
+        code:
+          description: An error code.
+          type: integer
+          format: int32
+        desc:
+          description: Optional human readable description.
+          type: string
     GameState:
       type: string
       enum: [setup, ingame, finished]
@@ -627,13 +727,19 @@ components:
         reservations - public game where anyone can join; however slotes are pre-associated
         with playerIds such that if those players join they are automatically granted their pre-associated
         index, vacating any previous occupant from that slot. (wip)
+    UserInfo:
+      type: object
+      properties:
+        userName:
+          type: string
+        #TODO: add more info; dateJoined etc...
     PlayerReady:
       type: object
       required:
-        - player
+        - userId
         - ready
       properties:
-        player:
+        userId:
           type: string
         ready:
           type: boolean
