@@ -5,14 +5,14 @@ using System.Linq;
 
 namespace Ludo.GameService
 {
-    public partial class SetupSession
+    public partial class SetupPhase
     {
-        private class SetupState : IUserIdReadyArray
+        private class PhaseData : ISetupPhaseData
         {
             private readonly UserReady[] slots;
             private readonly string[] others;
 
-            public SetupState(UserReady[] slots, string[] others)
+            public PhaseData(UserReady[] slots, string[] others)
             {
                 this.slots = slots ?? throw new ArgumentNullException(nameof(slots));
                 this.others = others ?? throw new ArgumentNullException(nameof(others));
@@ -24,36 +24,37 @@ namespace Ludo.GameService
             string IUserIdArray.this[int i] => slots[i].UserId;
             int IUserIdArray.Length => slots.Length;
 
-            IReadOnlyList<string> IUserIdReadyArray.Others => Array.AsReadOnly(others);
-            IReadOnlyList<UserReady> IUserIdReadyArray.Slots => Array.AsReadOnly(slots);
+            IReadOnlyList<string> ISetupPhaseData.Others => Array.AsReadOnly(others);
+            IReadOnlyList<UserReady> ISetupPhaseData.Slots => Array.AsReadOnly(slots);
 
             public int OpenCount => slots.Count((s) => string.IsNullOrEmpty(s.UserId));
             public bool IsAllReady => slots.All((s) => s.IsReady);
             public bool IsEmpty => others.Length == 0 && slots.All(((s) => string.IsNullOrEmpty(s.UserId)));
             //public bool IsFull => OpenCount == 0;
 
-            public SetupState TryAddSlot()
+            public PhaseData TryAddSlot()
                 => slots.Length < GameLogic.SessionFactory.MaxPlayers
-                ? new SetupState(slots.CopyResize(1), others)
+                ? new PhaseData(slots.CopyResize(1), others)
                 : null;
 
-            public SetupState TryAddToOthers(string userId)
+            public PhaseData TryAddToOthers(string userId)
                 => others.Length < MaxOthers && !Contains(userId)
-                ? new SetupState(slots, others.CopyAppend(userId))
+                ? new PhaseData(slots, others.CopyAppend(userId))
                 : null;
 
             // WARNING: does NOT check for duplicates!
-            public SetupState SetSlot(int i, UserReady slot)
-                => new SetupState(slots.Copy().Modify(i, slot), others);
+            public PhaseData SetSlot(int i, UserReady slot)
+                => new PhaseData(slots.Copy().Modify(i, slot), others);
 
-            public SetupState LeaveLobby(string userId)
+            // returns null if the user isn't in the lobby (no change)
+            public PhaseData LeaveLobby(string userId)
             {
                 // A user can not be in slots and others at the same time.
                 if (TryFindSlot(userId, out int i))
-                    return new SetupState(slots.Copy().Modify(i, default), others);
+                    return new PhaseData(slots.Copy().Modify(i, default), others);
                 if (TryFindOther(userId, out i))
-                    return new SetupState(slots, others.CopyRemoveAt(i));
-                return this;
+                    return new PhaseData(slots, others.CopyRemoveAt(i));
+                return null;
             }
 
             public bool Contains(string userId)
@@ -65,14 +66,14 @@ namespace Ludo.GameService
             public bool TryFindOther(string userId, out int index)
                 => (index = Array.IndexOf(others, userId)) != -1;
 
-            public SetupState TryMoveFromSlotToOthers(string userId)
+            public PhaseData TryMoveFromSlotToOthers(string userId)
                 => others.Length < MaxOthers && TryFindSlot(userId, out int i)
-                ? new SetupState(slots.Copy().Modify(i, default), others.CopyAppend(userId))
+                ? new PhaseData(slots.Copy().Modify(i, default), others.CopyAppend(userId))
                 : null;
 
-            public SetupState TryMoveFromOthersToSlot(int i, UserReady slot)
+            public PhaseData TryMoveFromOthersToSlot(int i, UserReady slot)
                 => TryFindOther(slot.UserId, out int i_o)
-                ? new SetupState(slots.Copy().Modify(i, slot), others.CopyRemoveAt(i_o))
+                ? new PhaseData(slots.Copy().Modify(i, slot), others.CopyRemoveAt(i_o))
                 : null;
 
             // iEmpty is -1 if false is returned.

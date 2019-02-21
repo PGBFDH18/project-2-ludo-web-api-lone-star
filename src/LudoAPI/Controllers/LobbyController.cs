@@ -72,18 +72,18 @@ namespace Ludo.WebAPI.Controllers
         {
             // a bit of a Linq mess here...
             return ludoService.Games
-                .Where(kvp => kvp.Value.GameState <= GameService.GameState.setup
-                && kvp.Value.Game.Setup != null
+                .Where(kvp => kvp.Value.Phase.State <= GameService.GameLifecycle.setup
+                && kvp.Value.Phase.Setup != null
                 && (show == Show.all
-                || (show == Show.full && kvp.Value.Game.Setup.Data.OpenCount == 0)
-                || (show == Show.open && kvp.Value.Game.Setup.Data.OpenCount > 0)
-                || (show == Show.penultimate && kvp.Value.Game.Setup.Data.OpenCount == 1))
-                && (users == null || users.Length == 0 || kvp.Value.Game.Setup.Data.Any(u => users.Contains(u))))
+                || (show == Show.full && kvp.Value.Phase.Setup.Data.OpenCount == 0)
+                || (show == Show.open && kvp.Value.Phase.Setup.Data.OpenCount > 0)
+                || (show == Show.penultimate && kvp.Value.Phase.Setup.Data.OpenCount == 1))
+                && (users == null || users.Length == 0 || kvp.Value.Phase.Setup.Data.Any(u => users.Contains(u))))
                 .Select(kvp => new LobbyListEntry
                 {
                     GameId = kvp.Key.Encoded,
-                    Slots = kvp.Value.Game.Setup.Data.ToArray(),
-                    Others = kvp.Value.Game.Setup.Data.Others,
+                    Slots = kvp.Value.Phase.Setup.Data.ToArray(),
+                    Others = kvp.Value.Phase.Setup.Data.Others,
                     Access = LobbyAccess.@public // TODO: LobbyAccess
                 });
             //TODO

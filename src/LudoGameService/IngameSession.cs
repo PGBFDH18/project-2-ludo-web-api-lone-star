@@ -2,7 +2,7 @@
 
 namespace Ludo.GameService
 {
-    public class IngameSession : IGameStateSession, ISharedGSS
+    public class IngameSession : IGamePhase//, ISharedGP
     {
         private readonly GameLogic.ISession session;
         private readonly IUserIdArray players;
@@ -13,18 +13,18 @@ namespace Ludo.GameService
             session = GameLogic.SessionFactory.New(playerCount: playerCount);
         }
 
-        IUserIdArray ISharedGSS.Slots => players;
-
         #region --- IGameStateSession ---
-        GameState IGameStateSession.State => GameState.ingame;
+        GameLifecycle IGamePhase.State => GameLifecycle.ingame;
 
-        SetupSession IGameStateSession.Setup => null;
+        SetupPhase IGamePhase.Setup => null;
 
-        IngameSession IGameStateSession.Ingame => this;
+        IngameSession IGamePhase.Ingame => this;
 
-        FinishedSession IGameStateSession.Finished => null;
+        FinishedPhase IGamePhase.Finished => null;
 
-        ISharedGSS IGameStateSession.Shared => this;
+        //ISharedGP IGamePhase.Shared => this;
+
+        IUserIdArray IGamePhase.Slots => players;
         #endregion
     }
 }

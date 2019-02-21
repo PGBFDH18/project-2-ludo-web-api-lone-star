@@ -285,6 +285,8 @@ paths:
           description: UserId not specified.
         '404':
           description: No such game and / or user exists.
+        '409':
+          description: Game is not in the setup phase.
       #TODO: require game auth token + 401 & 403 response
 
   /ludo/lobby/{gameId}/{slot}:

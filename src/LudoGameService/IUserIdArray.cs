@@ -8,5 +8,6 @@ namespace Ludo.GameService
         int Length { get; }
 
         int OpenCount { get; }
+        bool IsEmpty { get; }
     }
 }

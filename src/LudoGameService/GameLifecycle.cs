@@ -3,7 +3,7 @@
     // IMPORTANT:
     // Even values represent transitions.
     // Odd values represent more long lived states.
-    public enum GameState
+    public enum GameLifecycle
     {
         creating = 0,
         setup = 1,

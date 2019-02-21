@@ -1,10 +1,11 @@
 ﻿using System;
-using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Ludo.GameService
 {
+    // Simple shared implementation of IUserIdArray
     internal class UserArray : IUserIdArray
     {
         private readonly string[] players;
@@ -28,6 +29,8 @@ namespace Ludo.GameService
         public int Length => players.Length;
 
         int IUserIdArray.OpenCount => 0;
+
+        bool IUserIdArray.IsEmpty => players.All(string.IsNullOrEmpty);
 
         public IEnumerator<string> GetEnumerator()
             => players.AsEnumerable().GetEnumerator();

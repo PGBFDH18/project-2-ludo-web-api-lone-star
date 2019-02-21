@@ -9,15 +9,18 @@
     //  - a single IGameStateSession field needed per game (as opposed to a separate field per type per game).
     //  - GameState value embedded in the code, i.e. stored once per type as opposed to once per instance.
     // easy thread-safety (a GameState change is a simple interlocked exchange of a single field).
-    public interface IGameStateSession
+    public interface IGamePhase
     {
-        GameState State { get; }
+        GameLifecycle State { get; }
 
         // WARNING: Only one of these three are non-null at any given time!
-        SetupSession Setup { get; }
+        SetupPhase Setup { get; }
         IngameSession Ingame { get; }
-        FinishedSession Finished { get; }
-        ISharedGSS Shared { get; }
+        FinishedPhase Finished { get; }
+
+        // An array of encoded userIds, in slot order, with null for empty slots.
+        IUserIdArray Slots { get; }
+        //ISharedGSS Shared { get; }
     }
     // A similar strategy can be used to avoid casting in other situations too.
     // E.g. when you have a child class that implements an interface but you're holding an instance of the base class.
@@ -26,9 +29,7 @@
     // and in the castee the type check is simply "return this" - which is a compile time verified.
 
     // I put the shared features in a separate interface to make the above more clear. No other reason.
-    public interface ISharedGSS
-    {
-        // An array of encoded userIds, in slot order, with null for empty slots.
-        IUserIdArray Slots { get; }
-    }
+    //public interface ISharedGP
+    //{
+    //}
 }

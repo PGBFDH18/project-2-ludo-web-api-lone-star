@@ -31,7 +31,7 @@ namespace Ludo.WebAPI.Controllers
         }
 
         // operationId: ludoJoinLobby
-        // 200 response: DoneD:\Source\LudoLoneStar\src\LudoAPI\Controllers\LobbyGameController.cs
+        // 200 response: Done
         // 400 response: Done
         // 404 response: Done
         // 409 response: Done
@@ -75,9 +75,12 @@ namespace Ludo.WebAPI.Controllers
         {
             if (string.IsNullOrEmpty(userId))
                 return BadRequest();
-            if (!TryLeaveLobby(gameId, userId) && !(isKnown.GameId(gameId) && isKnown.UserId(userId)))
-                return NotFound(); //TODO: ErrorCode
-            return NoContent();
+            var err = TryLeaveLobby(userId: userId, gameId: gameId);
+            if (err == null)
+                return NoContent();
+            if (err.Code == ErrorCodes.Err01GameNotFound || err.Code == ErrorCodes.Err02UserNotFound)
+                return NotFound();
+            return Conflict(); // Not in setup phase //TODO: change this so it calls a concede?
         }
 
         // -------------------------------------------------------------------
@@ -158,7 +161,7 @@ namespace Ludo.WebAPI.Controllers
         private bool TryGetLobby(string gameId, out LobbyInfo lobbyInfo)
         {
             lobbyInfo = null;
-            var game = ludoService.Games.TryGet(Id.Partial(gameId))?.Game;
+            var game = ludoService.Games.TryGet(Id.Partial(gameId))?.Phase;
             if (game == null)
                 return false; //new ErrorCode { Code = ErrorCodes.Err01GameNotFound };
             lobbyInfo = new LobbyInfo
@@ -167,7 +170,7 @@ namespace Ludo.WebAPI.Controllers
                 State = (Models.GameState)game.State,
                 Others = game.Setup?.Data.Others,
                 Slots = (game.Setup == null
-                ? game.Shared?.Slots.Select(u => new PlayerReady { UserId = u })
+                ? game.Slots?.Select(u => new PlayerReady { UserId = u })
                 : game.Setup.Data.Slots.Select(ur => new PlayerReady { UserId = ur.UserId, Ready = ur.IsReady })
                 ).ToArray(),
                 Reservations = null, // <-- TODO
@@ -198,13 +201,7 @@ namespace Ludo.WebAPI.Controllers
         //TODO: refactor out to a dependency injected component
         private ErrorCode TryJoinLobby(string gameId, string userId, out int slot)
         {
-            slot = -1;
-            if (!ludoService.Users.ContainsId(Id.Partial(userId)))
-                return new ErrorCode { Code = ErrorCodes.Err02UserNotFound };
-            var game = ludoService.Games.TryGet(Id.Partial(gameId));
-            if (game == null)
-                return new ErrorCode { Code = ErrorCodes.Err01GameNotFound };
-            return game.TryAddUser(userId, out slot);
+            return ludoService.TryJoinLobby(userId, gameId, out slot);
             //TODO
             //slot = 0;
             //return gameId != "test"; // just for experimentation
@@ -218,10 +215,11 @@ namespace Ludo.WebAPI.Controllers
         }
 
         //TODO: refactor out to a dependency injected component
-        private bool TryLeaveLobby(string gameId, string player)
+        private ErrorCode TryLeaveLobby(string userId, string gameId)
         {
+            return ludoService.TryLeaveLobby(userId:userId, gameId:gameId);
             //TODO
-            return gameId != "test"; // just for experimentation
+            //return gameId != "test"; // just for experimentation
         }
 
         //TODO: refactor out to a dependency injected component

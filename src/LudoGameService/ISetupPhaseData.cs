@@ -2,7 +2,7 @@
 
 namespace Ludo.GameService
 {
-    public interface IUserIdReadyArray : IUserIdArray
+    public interface ISetupPhaseData : IUserIdArray
     {
         new UserReady this[int i] { get; }
 
@@ -10,7 +10,5 @@ namespace Ludo.GameService
         IReadOnlyList<UserReady> Slots { get; }
 
         bool IsAllReady { get; }
-        bool IsEmpty { get; }
-        //bool IsFull { get; }
     }
 }

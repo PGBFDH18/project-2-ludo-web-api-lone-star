@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace Ludo.GameService
 {
+    // Most extensions for expressionbodied modification of T[] arrays.
     internal static class TExtension
     {
         // Q: when would you need this?

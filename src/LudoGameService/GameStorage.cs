@@ -4,13 +4,13 @@ using System.Collections.Generic;
 namespace Ludo.GameService
 {
     // Thread-safe (hopefully)
-    public class GameStorage : IEnumerable<KeyValuePair<Id, GameData>>
+    public class GameStorage : IEnumerable<KeyValuePair<Id, Game>>
     {
         // TODO: move to ctor? set minEncodeLength?
-        private readonly IdStorage<GameData> ids = new IdStorage<GameData>();
+        private readonly IdStorage<Game> ids = new IdStorage<Game>();
 
         // inject validation?
-        public Id CreateGame(GameData data)
+        public Id CreateGame(Game data)
             => data == null ? default : ids.Add(data);
 
         // Accepts partial Ids.
@@ -18,7 +18,7 @@ namespace Ludo.GameService
             => ids.Contains(in id);
 
         // Accepts partial Ids.
-        public GameData TryGet(in Id id)
+        public Game TryGet(in Id id)
             => ids.TryGet(in id, out var data) ? data : null;
 
         //public bool TryGetUserName(Id id, out string userName)
@@ -28,7 +28,7 @@ namespace Ludo.GameService
         public ICollection<Id> CreateIdSnapshot()
             => ids.CreateIdSnapshot();
 
-        public IEnumerator<KeyValuePair<Id, GameData>> GetEnumerator()
+        public IEnumerator<KeyValuePair<Id, Game>> GetEnumerator()
             => ids.GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator()
