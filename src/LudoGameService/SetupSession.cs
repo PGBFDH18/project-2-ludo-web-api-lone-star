@@ -18,6 +18,7 @@ namespace Ludo.GameService
             public SetupState(UserReady[] slots, string[] others)
             {
                 this.slots = slots ?? throw new ArgumentNullException(nameof(slots));
+                this.others = others ?? throw new ArgumentNullException(nameof(others));
             }
 
             public UserReady this[int i] => slots[i];

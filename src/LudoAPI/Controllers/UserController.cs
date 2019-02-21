@@ -2,9 +2,10 @@
 using Ludo.WebAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
+using System.Linq;
 
 // Placeholder: Done
-// Proper Code: TODO
+// Proper Code: Done?
 namespace Ludo.WebAPI.Controllers
 {
     [Route("ludo/user")]
@@ -12,12 +13,12 @@ namespace Ludo.WebAPI.Controllers
     public class UserController : LudoControllerBase
     {
         private readonly ILudoService ludoService;
-        private readonly Components.IIsKnown isKnown;
+        //private readonly Components.IIsKnown isKnown;
 
-        public UserController(ILudoService ludoService, Components.IIsKnown isKnown)
+        public UserController(ILudoService ludoService)//, Components.IIsKnown isKnown)
         {
             this.ludoService = ludoService;
-            this.isKnown = isKnown;
+            //this.isKnown = isKnown;
         }
 
         // operationId: ludoListUsers
@@ -60,9 +61,7 @@ namespace Ludo.WebAPI.Controllers
         {
             if (TryGetUser(userId, out UserInfo user))
                 return user;
-            if (!isKnown.UserId(userId))
-                return NotFound();
-            return Status(500);
+            return NotFound();
         }
 
         // ===================================================================
@@ -70,24 +69,29 @@ namespace Ludo.WebAPI.Controllers
         //TODO: refactor out to a dependency injected component
         private IEnumerable<string> ListUsers()
         {
+            return ludoService.Users.CreateIdSnapshot().Select(id => id.Encoded);
             //TODO
-            return new[] { "userId1", "userId2" };
+            //return new[] { "userId1", "userId2" };
         }
 
         //TODO: refactor out to a dependency injected component
         private bool TryFindUser(string userName, out IEnumerable<string> match)
         {
+            if (ludoService.Users.TryGetId(userName, out Id id))
+            {
+                match = new[] { id.Encoded };
+                return true;
+            }
+            match = null;
+            return false;
             //TODO
-            match = new[] { "userId1" };
-            return userName != "test";
+            //match = new[] { "userId1" };
+            //return userName != "test";
         }
 
         //TODO: refactor out to a dependency injected component
         private bool TryCreateUser(string userName, out string userId)
         {
-            ////TODO
-            //userId = $"userId_placeholder({userName})";
-            //return userName != "test";
             if (ludoService.Users.TryCreateUser(userName, out Id id))
             {
                 userId = id.Encoded;
@@ -95,14 +99,24 @@ namespace Ludo.WebAPI.Controllers
             }
             userId = null;
             return false;
+            ////TODO
+            //userId = $"userId_placeholder({userName})";
+            //return userName != "test";
         }
 
         //TODO: refactor out to a dependency injected component
         private bool TryGetUser(string userId, out UserInfo user)
         {
+            if (ludoService.Users.TryGetUserName(Id.Partial(userId), out string userName))
+            {
+                user = new UserInfo { UserName = userName };
+                return true;
+            }
+            user = null;
+            return false;
             //TODO
-            user = new UserInfo { UserName = "xXx_Placeholder_xXx" };
-            return userId != "test";
+            //user = new UserInfo { UserName = "xXx_Placeholder_xXx" };
+            //return userId != "test";
         }
 
         //TODO: refactor out to a dependency injected component
