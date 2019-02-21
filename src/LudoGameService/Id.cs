@@ -2,6 +2,10 @@
 
 namespace Ludo.GameService
 {
+    // Ids are encoded left-to-right;
+    // a numeric id of 1 with an encoding length of 3, would look like '100';
+    // a numeric id of 4 with an encoding length of 3, would look like '400';
+    // ...numeric 20 = 'k00' encoded, numeric 50 = 'e10', etc.
     public readonly struct Id : IEquatable<Id>, IEquatable<string>
     {
         public const int DefaultEncodedLength = 3;

@@ -25,6 +25,7 @@ namespace Ludo.GameService
             int IUserIdArray.Length => slots.Length;
 
             IReadOnlyList<string> IUserIdReadyArray.Others => Array.AsReadOnly(others);
+            IReadOnlyList<UserReady> IUserIdReadyArray.Slots => Array.AsReadOnly(slots);
 
             public int OpenCount => slots.Count((s) => string.IsNullOrEmpty(s.UserId));
             public bool IsAllReady => slots.All((s) => s.IsReady);

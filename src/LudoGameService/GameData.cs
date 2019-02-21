@@ -39,9 +39,7 @@ namespace Ludo.GameService
         public bool UserIsPlayer(string userId)
             => _game.Shared?.Slots.Contains(userId) == true;
 
-        public SetupSession TryGetSetup => _game.Setup;
-
-        internal IGameStateSession Game => _game;
+        public IGameStateSession Game => _game;
         private volatile IGameStateSession _game = TransitionState.Creating;
 
         // thread-safe, lock-free, performs roll-back on to_factory failure.

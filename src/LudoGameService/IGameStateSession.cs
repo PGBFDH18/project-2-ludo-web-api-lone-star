@@ -9,7 +9,7 @@
     //  - a single IGameStateSession field needed per game (as opposed to a separate field per type per game).
     //  - GameState value embedded in the code, i.e. stored once per type as opposed to once per instance.
     // easy thread-safety (a GameState change is a simple interlocked exchange of a single field).
-    internal interface IGameStateSession
+    public interface IGameStateSession
     {
         GameState State { get; }
 

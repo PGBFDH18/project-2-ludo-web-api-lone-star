@@ -1,11 +1,9 @@
 ﻿using Ludo.GameService;
 using Ludo.WebAPI.Models;
-using System.Linq;
-using Microsoft.AspNetCore.Hosting.Internal;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Routing;
+using System.Linq;
 
-// Placeholder: TODO
+// Placeholder: Done
 // Proper Code: TODO
 namespace Ludo.WebAPI.Controllers
 {
@@ -159,26 +157,42 @@ namespace Ludo.WebAPI.Controllers
         //TODO: refactor out to a dependency injected component
         private bool TryGetLobby(string gameId, out LobbyInfo lobbyInfo)
         {
-            //TODO
-            lobbyInfo = new LobbyInfo {
-                Access = LobbyAccess.@public,
-                State = Models.GameState.setup,
-                Slots = new PlayerReady[] {
-                    new PlayerReady{
-                        UserId = $"placeholder1 ({gameId})",
-                        Ready = true,
-                    },
-                    new PlayerReady{
-                        UserId = $"placeholder2 ({gameId})",
-                        Ready = false,
-                    },
-                },
-                Reservations = new LobbyReservation[] {
-                    new LobbyReservation { Player = "olle", Slot = 0, Strict = false },
-                    new LobbyReservation { Player = "pelle", Slot = 0, Strict = false },
-                },
+            lobbyInfo = null;
+            var game = ludoService.Games.TryGet(Id.Partial(gameId))?.Game;
+            if (game == null)
+                return false; //new ErrorCode { Code = ErrorCodes.Err01GameNotFound };
+            lobbyInfo = new LobbyInfo
+            {
+                Access = LobbyAccess.@public, // <-- TODO
+                State = (Models.GameState)game.State,
+                Others = game.Setup?.Data.Others,
+                Slots = (game.Setup == null
+                ? game.Shared?.Slots.Select(u => new PlayerReady { UserId = u })
+                : game.Setup.Data.Slots.Select(ur => new PlayerReady { UserId = ur.UserId, Ready = ur.IsReady })
+                ).ToArray(),
+                Reservations = null, // <-- TODO
             };
-            return gameId != "test"; // just for experimentation
+            return true;
+            //TODO
+            //lobbyInfo = new LobbyInfo {
+            //    Access = LobbyAccess.@public,
+            //    State = Models.GameState.setup,
+            //    Slots = new PlayerReady[] {
+            //        new PlayerReady{
+            //            UserId = $"placeholder1 ({gameId})",
+            //            Ready = true,
+            //        },
+            //        new PlayerReady{
+            //            UserId = $"placeholder2 ({gameId})",
+            //            Ready = false,
+            //        },
+            //    },
+            //    Reservations = new LobbyReservation[] {
+            //        new LobbyReservation { Player = "olle", Slot = 0, Strict = false },
+            //        new LobbyReservation { Player = "pelle", Slot = 0, Strict = false },
+            //    },
+            //};
+            //return gameId != "test"; // just for experimentation
         }
 
         //TODO: refactor out to a dependency injected component
@@ -187,7 +201,7 @@ namespace Ludo.WebAPI.Controllers
             slot = -1;
             if (!ludoService.Users.ContainsId(Id.Partial(userId)))
                 return new ErrorCode { Code = ErrorCodes.Err02UserNotFound };
-            var game = ludoService.Games.FirstOrDefault((kvp) => kvp.Key.Encoded == gameId).Value;
+            var game = ludoService.Games.TryGet(Id.Partial(gameId));
             if (game == null)
                 return new ErrorCode { Code = ErrorCodes.Err01GameNotFound };
             return game.TryAddUser(userId, out slot);

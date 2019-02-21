@@ -18,7 +18,7 @@ namespace Ludo.GameService
             => ids.Contains(in id);
 
         // Accepts partial Ids.
-        public GameData Get(in Id id)
+        public GameData TryGet(in Id id)
             => ids.TryGet(in id, out var data) ? data : null;
 
         //public bool TryGetUserName(Id id, out string userName)

@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 // Placeholder: Done
-// Proper Code: TODO
+// Proper Code: Done?
 namespace Ludo.WebAPI.Controllers
 {
     [Route("ludo/lobby")]
@@ -73,17 +73,17 @@ namespace Ludo.WebAPI.Controllers
             // a bit of a Linq mess here...
             return ludoService.Games
                 .Where(kvp => kvp.Value.GameState <= GameService.GameState.setup
-                && kvp.Value.TryGetSetup?.Slots != null
+                && kvp.Value.Game.Setup != null
                 && (show == Show.all
-                || (show == Show.full && kvp.Value.TryGetSetup.Slots.OpenCount == 0)
-                || (show == Show.open && kvp.Value.TryGetSetup.Slots.OpenCount > 0)
-                || (show == Show.penultimate && kvp.Value.TryGetSetup.Slots.OpenCount == 1))
-                && (users == null || users.Length == 0 || kvp.Value.TryGetSetup.Slots.Any(u => users.Contains(u))))
+                || (show == Show.full && kvp.Value.Game.Setup.Data.OpenCount == 0)
+                || (show == Show.open && kvp.Value.Game.Setup.Data.OpenCount > 0)
+                || (show == Show.penultimate && kvp.Value.Game.Setup.Data.OpenCount == 1))
+                && (users == null || users.Length == 0 || kvp.Value.Game.Setup.Data.Any(u => users.Contains(u))))
                 .Select(kvp => new LobbyListEntry
                 {
                     GameId = kvp.Key.Encoded,
-                    Slots = kvp.Value.TryGetSetup.Slots.ToArray(),
-                    Others = kvp.Value.TryGetSetup.Slots.Others,
+                    Slots = kvp.Value.Game.Setup.Data.ToArray(),
+                    Others = kvp.Value.Game.Setup.Data.Others,
                     Access = LobbyAccess.@public // TODO: LobbyAccess
                 });
             //TODO

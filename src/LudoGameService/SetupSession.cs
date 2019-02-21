@@ -16,7 +16,7 @@ namespace Ludo.GameService
             slots = new SetupState(new UserReady[slotCount].Modify(0, new UserReady(ownerId)), Array.Empty<string>());
         }
 
-        public IUserIdReadyArray Slots => slots;
+        public IUserIdReadyArray Data => slots;
 
         public bool TryAddSlot()
         {
