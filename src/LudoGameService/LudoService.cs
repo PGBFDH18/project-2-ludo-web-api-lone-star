@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Threading;
 
 namespace Ludo.GameService
 {
-    // TODO....
     public class LudoService : ILudoService
     {
         public UserStorage Users { get; } = new UserStorage();
@@ -11,40 +9,100 @@ namespace Ludo.GameService
 
         //public object Sessions
 
-        public Error TryCreateLobby(string userId, int slots, out string gameId)
+        public Error CreateLobby(string userId, int slots, LobbyAccess access, out string gameId)
         {
             gameId = null;
+            if (!access.IsDefined())
+                return ErrorCodes.E08InvalidLobbyAccessValue;
             if (!Users.ContainsId(Id.Partial(userId)))
-                return ErrorCodes.Err02UserNotFound;
+                return ErrorCodes.E02UserNotFound;
             if (!GameLogic.SessionFactory.IsValid.PlayerCount(slots))
-                return ErrorCodes.Err05InvalidSlotCount;
-            var lobby = new SetupPhase(userId, slots);
+                return ErrorCodes.E05InvalidSlotCount;
+            var lobby = new SetupPhase(userId, slots, access);
             var game = new Game(lobby);
             gameId = Games.CreateGame(game).Encoded;
-            return null;
+            return ErrorCodes.E00NoError;
         }
 
-        public Error TryJoinLobby(string userId, string gameId, out int slot)
+        public Error GetPlayerReady(string gameId, int slot, out UserReady userReady)
+        {
+            userReady = default;
+            var game = Games.TryGet(Id.Partial(gameId));
+            if (game == null)
+                return ErrorCodes.E01GameNotFound;
+            var sed = game.Phase.Setup.Data;
+            if (sed == null)
+                return ErrorCodes.E03NotInSetupPhase;
+            return sed.TryGet(slot, out userReady)
+                ? ErrorCodes.E00NoError
+                : ErrorCodes.E10InvalidSlotIndex;
+        }
+
+        public Error JoinLobby(string userId, string gameId, out int slot)
         {
             slot = -1;
             if (!Users.ContainsId(Id.Partial(userId)))
-                return ErrorCodes.Err02UserNotFound;
+                return ErrorCodes.E02UserNotFound;
             var game = Games.TryGet(Id.Partial(gameId));
             if (game == null)
-                return ErrorCodes.Err01GameNotFound;
+                return ErrorCodes.E01GameNotFound;
             return game.TryAddUser(userId, out slot);
         }
 
-        public Error TryLeaveLobby(string userId, string gameId)
+        public Error LeaveLobby(string userId, string gameId)
         {
             if (!Users.ContainsId(Id.Partial(userId)))
-                return ErrorCodes.Err02UserNotFound;
-            var g = Games.TryGet(Id.Partial(userId));
-            if (g == null)
-                return ErrorCodes.Err01GameNotFound;
-            if (g.Phase.Setup?.TryLeaveLobby(userId) != true)
-                return ErrorCodes.Err03NotInSetupState;
-            return null;
+                return ErrorCodes.E02UserNotFound;
+            var game = Games.TryGet(Id.Partial(userId));
+            if (game == null)
+                return ErrorCodes.E01GameNotFound;
+            var setup = game.Phase.Setup;
+            if (setup == null)
+                return ErrorCodes.E03NotInSetupPhase;
+            bool wasLastUser = false;
+            var err = setup.TryLeaveLobby(userId, out wasLastUser);
+            if (wasLastUser) // last user has left the lobby?
+                Games.Remove(Id.Partial(userId), out _);
+            return err;
+        }
+        
+        public Error SetSlotReady(string gameId, int slot, UserReady userReady)
+        {
+            if (!Users.ContainsId(Id.Partial(userReady.UserId)))
+                return ErrorCodes.E02UserNotFound;
+            var game = Games.TryGet(Id.Partial(gameId));
+            if (game == null)
+                return ErrorCodes.E01GameNotFound;
+            var setup = game.Phase.Setup;
+            if (setup == null)
+                return ErrorCodes.E03NotInSetupPhase;
+            return setup.TrySetSlotReady(slot, userReady);
+        }
+        
+        public Error UnSlotUser(string gameId, string userId)
+        {
+            if (!Users.ContainsId(Id.Partial(userId)))
+                return ErrorCodes.E02UserNotFound;
+            var game = Games.TryGet(Id.Partial(gameId));
+            if (game == null)
+                return ErrorCodes.E01GameNotFound;
+            var setup = game.Phase.Setup;
+            if (setup == null)
+                return ErrorCodes.E03NotInSetupPhase;
+            return setup.TryUnSlot(userId);
+        }
+
+        public Error ClaimSlot(string gameId, int slot, string userId)
+        {
+            if (!Users.ContainsId(Id.Partial(userId)))
+                return ErrorCodes.E02UserNotFound;
+            var game = Games.TryGet(Id.Partial(gameId));
+            if (game == null)
+                return ErrorCodes.E01GameNotFound;
+            var setup = game.Phase.Setup;
+            if (setup == null)
+                return ErrorCodes.E03NotInSetupPhase;
+            return setup.TryClaimSlot(slot, userId, null); // <--- TODO: reservations!
         }
     }
 }

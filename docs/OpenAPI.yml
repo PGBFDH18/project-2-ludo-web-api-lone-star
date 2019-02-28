@@ -46,10 +46,7 @@ paths:
       parameters:
         - name: userName
           in: query
-          description: >
-            UserName of a user to search for.
-            Will return either a 200 reponse with a single array entry (exist),
-            or 404 (does not exist).
+          description: UserName of a user to search for.
           schema:
             type: string
       responses:
@@ -62,7 +59,7 @@ paths:
                 items:
                   type: string
         '404':
-          description: No matching user(s) exist.
+          description: No matching user(s) exist. (For searches only.)
     
     post:
       operationId: ludoCreateUser
@@ -166,13 +163,13 @@ paths:
         - users
       summary: Creates a new lobby.
       description: Creates a new lobby and joins it as player 0.
-      parameters: 
-        - name: UserId
-          in: header
-          description: The user creating the lobby.
-          schema:
-            type: string
-          required: true
+      requestBody:
+        description: Information required to create a new lobby.
+        required: true
+        content:
+          application/JSON:
+            schema:
+              $ref: '#/components/schemas/CreateLobby'
       responses:
         '201': # Created
           description: >
@@ -182,6 +179,8 @@ paths:
           description: Player not specified.
         '404':
           description: No such player exists.
+        '422':
+          description: SlotCount is out of range.
         #TODO: some form of auth?
   
   /ludo/lobby/{gameId}:
@@ -235,10 +234,16 @@ paths:
           description: Player not specified.
         '404':
           description: No such game and / or player exists.
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/ErrorCode'
         '409': # "This response is sent when a request conflicts with the current state of the server."
-          description: >
-            Unable to join game
-            (e.g. lobby is full or game already started).
+          description: Unable to join game
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/ErrorCode'
           #TODO: supply exact reason in body (ErrorCode object)
     
     post:
@@ -257,10 +262,11 @@ paths:
         '404':
           description: No such game exists.
         '409':
-          description: >
-            Unable to start game
-            (e.g. not enough players or not all players ready or
-            game already started or game already ended).
+          description: Unable to start game.
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/ErrorCode'
       #TODO: require game auth token + 401 & 403 response
     
     delete:
@@ -285,8 +291,16 @@ paths:
           description: UserId not specified.
         '404':
           description: No such game and / or user exists.
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/ErrorCode'
         '409':
           description: Game is not in the setup phase.
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/ErrorCode'
       #TODO: require game auth token + 401 & 403 response
 
   /ludo/lobby/{gameId}/{slot}:
@@ -307,26 +321,61 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlayerReady'
         '400':
-          description: Bad slot.
+          description: Bad slot index.
         '404':
-          description: No such game exists.
+          description: No such game or slot exists.
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/ErrorCode'
         '409':
           description: Game not in setup stage (i.e. already in progress / ended).
       #TODO: require game auth token + 401 & 403 response
-    
-    put:
-      operationId: ludoSetPlayerReady
+
+    post:
+      operationId: ludoSetSlotPlayer
       tags:
         - players
-      summary: Set a player's slot and ready status.
-      description: |
-        Binds (or unbinds) a player to a slot index and sets their ready status.
-        Cannot bind to an index which another player is currently bound to
-        (unless the new player has a reservation and the old player does not).
-        All players in a lobby need to ready up before a game can start.
-        Use slot -1 to unbind a player (implies not ready).
+      summary: Move a user to this slot.
+      description: >
+        User must already be in the lobby and the slot needs to be empty
+        or occupied by someone whom the user has permission to evict.
+        (A reservation grants permission to evict those without a reservation.)
+        Use slot -1 to evict yourself.
+      parameters:
+        - name: UserId
+          in: header
+          description: User to move to this slot.
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: OK - Also sent if no change occurred.
+        '400':
+          description: Bad input parameter.
+        '404':
+          description: No such game / user / slot exists.
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/ErrorCode'
+        '409':
+          description: Unable to claim slot.
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/ErrorCode'
+      #TODO: require game auth token + 401 & 403 response
+    
+    put:
+      operationId: ludoSetSlotReady
+      tags:
+        - players
+      summary: Sets the ready status of a slot/player.
+      description: All players in a lobby need to ready up before a game can start.
       requestBody:
-        description: The player to bind this slot to and their ready status.
+        description: The user occupying this slot to and their new ready status.
         required: true
         content:
           application/JSON:
@@ -338,11 +387,19 @@ paths:
         '400':
           description: Bad input parameter.
         '404':
-          description: No such game and / or user and / or slot exists.
+          description: No such game / user / slot exists.
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/ErrorCode'
         '409':
           description: >
-            Unable to bind to slot
-            (e.g. slot occupied or user not in the lobby or game already started / ended).
+            Unable to set ready status
+            (e.g. the user found in this slot was not the user specified).
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/ErrorCode'
       #TODO: require game auth token + 401 & 403 response
   
   /ludo/board:
@@ -392,7 +449,7 @@ paths:
         '404':
           description: No such game exists.
         '409':
-          description: Game has either not started or has already ended.
+          description: Game is not in the ingame phase.
     
     put:
       tags:
@@ -713,10 +770,12 @@ components:
         desc:
           description: Optional human readable description.
           type: string
+    
     GameState:
       type: string
       enum: [setup, ingame, finished]
       description: The state of a game / lobby.
+    
     LobbyAccess:
       type: string
       enum: [public, unlisted, friendsOnly, inviteOnly, reservations]
@@ -729,12 +788,38 @@ components:
         reservations - public game where anyone can join; however slotes are pre-associated
         with playerIds such that if those players join they are automatically granted their pre-associated
         index, vacating any previous occupant from that slot. (wip)
+    
+    CreateLobby:
+      type: object
+      description: Information required to create a new lobby.
+      required:
+        - userId
+      properties:
+        userId:
+          description: The user creating the lobby.
+          type: string
+        slots:
+          description: Number of slots.
+          type: integer
+          format: int32
+          minimum: 2
+          maximum: 4
+          default: 4
+        access:
+          $ref: '#/components/schemas/LobbyAccess'
+        reservations:
+          description: An array of all slot reservations in this lobby.
+          type: array
+          items:
+            $ref: '#/components/schemas/LobbyReservation'
+
     UserInfo:
       type: object
       properties:
         userName:
           type: string
         #TODO: add more info; dateJoined etc...
+    
     PlayerReady:
       type: object
       required:
@@ -745,6 +830,7 @@ components:
           type: string
         ready:
           type: boolean
+    
     LobbyReservation:
       type: object
       required:
@@ -765,6 +851,7 @@ components:
             If the reservation is strict, then no other player may take this slot.
             Otherwise it functions as a normal slot, except that a player that has
             a reservation to may evict non-reserved players to claim it.
+    
     LobbyListEntry:
       type: object
       properties:
@@ -786,6 +873,7 @@ components:
           items:
             type: string
         #TODO: add reservation info <-------------------------
+    
     LobbyInfo:
       type: object
       properties:
@@ -812,6 +900,7 @@ components:
           items:
             $ref: '#/components/schemas/LobbyReservation'
         #TODO: add more properties..?
+    
     GameListEntry:
       type: object
       properties:
@@ -828,6 +917,7 @@ components:
           items:
             type: string
         #TODO: add more properties..?
+    
     StartEndPos:  # min-max values derive from min-max of boardLength.
       type: object
       required:
@@ -849,6 +939,7 @@ components:
           format: int32
           minimum: 24
           maximum: 110
+    
     BoardInfo:  # default values are for a standard sized Ludo board.
       type: object
       required:
@@ -880,6 +971,7 @@ components:
           items:
             $ref: '#/components/schemas/StartEndPos'
         #TODO add more properties..?
+    
     PieceDistances:
       type: array
       description: |
@@ -893,11 +985,13 @@ components:
         format: int32
         minimum: 0
         maximum: 90 # based on maximum allowed boardLength
+    
     BoardState:
       type: array
       description: An array of piece distance arrays (one for each player, i.e. slot index).
       items:
         $ref: '#/components/schemas/PieceDistances'
+    
     PlayerDie:
       type: object
       required:
@@ -916,6 +1010,7 @@ components:
           format: int32
           minimum: 1
           maximum: 6
+    
     PlayerSlot:
       type: object
       properties:
@@ -927,6 +1022,7 @@ components:
           format: int32
           minimum: -1
           maximum: 3
+    
     LobbySave:
       type: object
       required:
@@ -936,6 +1032,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PlayerSlot'
+    
     GameSave:
       type: object
       required:
@@ -950,6 +1047,7 @@ components:
         lobby:
           $ref: '#/components/schemas/LobbySave'
         #TODO is any data missing to make this a complete game save?
+    
     TurnInfo:
       type: object
       required:
@@ -970,6 +1068,7 @@ components:
           description: A JSON array of PieceInfo objects.
           items:
             $ref: '#/components/schemas/PieceInfo'
+    
     PieceInfo:
       type: object
       required:
@@ -999,6 +1098,7 @@ components:
             Omitted if the piece cannot move.
         collision:
           $ref: '#/components/schemas/PlayerPiece'
+    
     PlayerPiece:
           type: object
           required:

@@ -25,14 +25,10 @@ namespace Ludo.GameService
         {
             // TODO: LobbyAccess rules
             slotIndex = -1;
-            var g = _phase.Setup;
-            if (g == null)
-                return ErrorCodes.Err03NotInSetupState;
-            if (!g.TryAddUser(userId, out slotIndex))
-                return ErrorCodes.Err04LobbyIsFull;
-            if (!(_phase == g || UserIsPlayer(userId)))
-                return ErrorCodes.Err03NotInSetupState;
-            return null;
+            var setup = _phase.Setup;
+            if (setup == null)
+                return ErrorCodes.E03NotInSetupPhase;
+            return setup.TryAddUser(userId, out slotIndex); // 00,01,03,04
         }
 
         public bool UserIsPlayer(string userId)

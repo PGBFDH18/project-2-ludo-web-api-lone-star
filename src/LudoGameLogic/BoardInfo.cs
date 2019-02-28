@@ -10,12 +10,18 @@ namespace Ludo.GameLogic
         public static readonly int MinLength = 24;
         public static readonly int MaxLength = 80;
 
-        public static bool IsValidLength(int boardLength)
-            => boardLength >= MinLength & boardLength <= MaxLength & (boardLength % ENDZONE_DIVISOR == 0);
-
-        public static void Validate(int boardLength)
-        {   if (boardLength < MinLength | boardLength > MaxLength) throw new ArgumentOutOfRangeException(nameof(boardLength));
-            if (boardLength % ENDZONE_DIVISOR != 0) throw new ArgumentException("Must be a multiple of 8.", nameof(boardLength));
+        public static class IsValid
+        {
+            public static bool Length(int boardLength)
+                => boardLength >= MinLength & boardLength <= MaxLength & (boardLength % ENDZONE_DIVISOR == 0);
+        }
+        public static class Validate
+        {
+            public static void Length(int boardLength)
+            {
+                if (boardLength < MinLength | boardLength > MaxLength) throw new ArgumentOutOfRangeException(nameof(boardLength));
+                if (boardLength % ENDZONE_DIVISOR != 0) throw new ArgumentException("Must be a multiple of 8.", nameof(boardLength));
+            }
         }
 
         // ctor - does NOT validate the length argument!
@@ -26,8 +32,8 @@ namespace Ludo.GameLogic
         public int Length { get; }
 
         // is this instance valid? (Was it initialized with a valid length argument?)
-        public bool IsValid
-            => IsValidLength(Length);
+        public bool IsProper
+            => IsValid.Length(Length);
 
         // width and height of a board (Size x Size) (helper method useful for drawing a GUI)
         [Obsolete] // TODO: move somewhere else - feels dirty to have a GUI related method here.

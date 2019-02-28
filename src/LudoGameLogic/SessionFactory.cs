@@ -41,7 +41,7 @@ namespace Ludo.GameLogic
         {
             Validate.PlayerCount(playerCount);
             Validate.StartingPlayer(startingPlayer, playerCount);
-            BoardInfo.Validate(boardLength);
+            BoardInfo.Validate.Length(boardLength);
 
             return new Session(playerCount, new BoardInfo(boardLength), rules, startingPlayer);
         }

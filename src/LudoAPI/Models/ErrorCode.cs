@@ -1,12 +1,37 @@
+using System;
+
 namespace Ludo.WebAPI.Models
 {
-    public class ErrorCode
+    public readonly struct ErrorCode : IEquatable<ErrorCode>
     {
-        public int Code { get; set; }
-        public string Desc { get; set; }
+        public ErrorCode(int code, string desc = null)
+        {
+            Code = code;
+            Desc = desc;
+        }
+
+        public int Code { get; }
+        public string Desc { get; }
+
+        public override bool Equals(object obj)
+            => obj is ErrorCode ec && Equals(ec);
+
+        public bool Equals(ErrorCode other) => Code == other.Code;
+
+        public override int GetHashCode() => Code;
+
+        public override string ToString()
+            => Desc ?? Code.ToString();
+
+        public static bool operator ==(ErrorCode error, int code)
+            => error.Code == code;
+        public static bool operator !=(ErrorCode error, int code)
+            => error.Code != code;
 
         public static implicit operator ErrorCode (GameService.Error error)
-            => error == null ? null
-            : new ErrorCode { Code = error.Code, Desc = error.Desc };
+            => new ErrorCode(code:error.Code, desc:error.Desc);
+
+        public static implicit operator ErrorCode (int errorCode)
+            => new ErrorCode(errorCode);
     }
 }

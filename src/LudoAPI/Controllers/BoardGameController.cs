@@ -2,8 +2,6 @@
 using Ludo.WebAPI.Components;
 using Microsoft.AspNetCore.Mvc;
 
-// Placeholder: Done
-// Proper Code: Done?
 namespace Ludo.WebAPI.Controllers
 {
     [Route("ludo/board/" + ROUTE_gameId)]
@@ -12,8 +10,7 @@ namespace Ludo.WebAPI.Controllers
     {
         private readonly Components.IBoardState boardState;
 
-        public BoardGameController(IBoardState boardState)
-        {
+        public BoardGameController(IBoardState boardState) {
             this.boardState = boardState;
         }
 
@@ -24,17 +21,11 @@ namespace Ludo.WebAPI.Controllers
         [HttpGet] public ActionResult<Models.BoardState> Get ([FromRoute]string gameId)
         {
             var err = boardState.TryGetBoardState(gameId, out Models.BoardState bstate);
-            if (err == null)
+            if (err == ErrorCodes.E00NoError)
                 return bstate;
-            if (err.Code == ErrorCodes.Err01GameNotFound)
+            if (err == ErrorCodes.E01GameNotFound)
                 return NotFound();
             return Conflict();
-            //if (IsKnownGameId(gameId))
-            //    return Conflict();
-            //return NotFound();
         }
-
-        //TODO: refactor out to a dependency injected component
-        
     }
 }

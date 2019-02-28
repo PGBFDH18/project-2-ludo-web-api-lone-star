@@ -3,26 +3,9 @@ using System.Collections.Generic;
 
 namespace Ludo.GameService
 {
-    // Most extensions for expressionbodied modification of T[] arrays.
-    internal static class TExtension
+    // Extensions for expressionbodied modification of T[] arrays.
+    internal static class TArrayExtensions
     {
-        // Q: when would you need this?
-        // A: When you need to create a local copy of a variable in an expression body for thread safety.
-        //
-        //    E.g. in cases where this would be a race condition:
-        //      => t == null ? someValue : Process(t.OtherValue);
-        //
-        //    And because OtherValue needs "processing" but someValue does not we can't use:
-        //      t?.OtherValue ?? someValue
-        //
-        //    OtherValue and someValue might not even be of the same type.
-        //    Having an out parameter allows us to declare a local in the expression body.
-        //    Thus with this extension we can write:
-        //      => t.IsNull(out var tLocal) ? someValue : Process(tLocal.OtherValue);
-        //
-        public static bool IsNull<T>(this T tIn, out T tLocal)
-            => (tLocal = tIn) == null;
-
         // Makes a copy of the array, optionally resizing it in the process
         public static T[] CopyResize<T>(this T[] source, int sizeDiff = 0)
         {
@@ -43,6 +26,15 @@ namespace Ludo.GameService
         public static T[] Modify<T>(this T[] source, int index, T value)
         {
             source[index] = value;
+            return source;
+        }
+
+        // Swaps two elements.
+        public static T[] Swap<T>(this T[] source, int index1, int index2)
+        {
+            var t = source[index1];
+            source[index1] = source[index2];
+            source[index2] = t;
             return source;
         }
 

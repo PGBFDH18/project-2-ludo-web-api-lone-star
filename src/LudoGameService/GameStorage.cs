@@ -21,6 +21,10 @@ namespace Ludo.GameService
         public Game TryGet(in Id id)
             => ids.TryGet(in id, out var data) ? data : null;
 
+        // Accepts partial Ids.
+        internal void Remove(in Id id, out Game game)
+            => ids.TryRemove(in id, out game);
+
         //public bool TryGetUserName(Id id, out string userName)
         //    => ids.TryGet(id, out var data) & (userName = data?.UserName) != null;
         

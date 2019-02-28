@@ -2,10 +2,10 @@
 
 namespace Ludo.WebAPI.Components
 {
-    sealed class IsKnown : IIsKnown
+    sealed class CIsKnown : IIsKnown
     {
         private readonly ILudoService ludoService;
-        public IsKnown(ILudoService ludoService)
+        public CIsKnown(ILudoService ludoService)
         {
             this.ludoService = ludoService;
         }

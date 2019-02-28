@@ -10,5 +10,6 @@
 
         public string UserId { get; }
         public bool IsReady { get; }
-    }
+
+        public bool HasValue => UserId != null;    }
 }
