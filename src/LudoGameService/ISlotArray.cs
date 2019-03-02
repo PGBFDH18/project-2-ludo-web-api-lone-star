@@ -2,12 +2,12 @@
 
 namespace Ludo.GameService
 {
-    public interface IUserIdArray : IEnumerable<string>
+    public interface ISlotArray : IEnumerable<string>
     {
         string this[int i] { get; }
         int Length { get; }
 
-        int OpenCount { get; }
+        int PlayerCount { get; }
         bool IsEmpty { get; }
     }
 }

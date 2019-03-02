@@ -104,5 +104,13 @@ namespace Ludo.GameService
                 return ErrorCodes.E03NotInSetupPhase;
             return setup.TryClaimSlot(slot, userId, null); // <--- TODO: reservations!
         }
+
+        public Error StartGame(string gameId, int startingSlot = -1)
+        {
+            var game = Games.TryGet(Id.Partial(gameId));
+            if (game == null)
+                return ErrorCodes.E01GameNotFound;
+            return game.TryStartGame(startingSlot);
+        }
     }
 }

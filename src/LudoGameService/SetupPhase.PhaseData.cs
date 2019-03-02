@@ -7,28 +7,34 @@ namespace Ludo.GameService
 {
     public partial class SetupPhase
     {
+        // immutable!
         private class PhaseData : ISetupPhaseData
         {
             private readonly UserReady[] slots;
             private readonly string[] others;
 
-            public PhaseData(UserReady[] slots, string[] others)
+            public PhaseData(UserReady[] slots, string[] others, bool isFinal = false)
             {
                 this.slots = slots ?? throw new ArgumentNullException(nameof(slots));
                 this.others = others ?? throw new ArgumentNullException(nameof(others));
+                this.IsFinalLocked = isFinal;
             }
+
+            // WARNING: This class does not check this property!
+            // It is the responsibility of the SetupPhase class to check it!
+            public bool IsFinalLocked { get; }
 
             public UserReady this[int i] => slots[i];
 
-            string IUserIdArray.this[int i] => slots[i].UserId;
-            int IUserIdArray.Length => slots.Length;
+            string ISlotArray.this[int i] => slots[i].UserId;
+            int ISlotArray.Length => slots.Length;
 
             IReadOnlyList<string> ISetupPhaseData.Others => Array.AsReadOnly(others);
             IReadOnlyList<UserReady> ISetupPhaseData.Slots => Array.AsReadOnly(slots);
 
-            // OpenCount + PlayerCount == SlotCount
+            // WARNING: OpenCount + PlayerCount != SlotCount
             public int SlotCount => slots.Length;
-            public int OpenCount => slots.Count(s => !s.HasValue);
+            public int OpenCount => IsFinalLocked ? 0 : slots.Count(s => !s.HasValue);
             public int PlayerCount => slots.Count(s => s.HasValue);
             public int OtherCount => others.Length;
             private int AllCount => OtherCount + PlayerCount;
@@ -48,6 +54,9 @@ namespace Ludo.GameService
                 userReady = default;
                 return false;
             }
+
+            internal PhaseData TryFinalLock()
+                => IsAllReady ? new PhaseData(slots, others, true) : null;
 
             internal PhaseData TryAddSlot()
                 => slots.Length < GameLogic.SessionFactory.MaxPlayers

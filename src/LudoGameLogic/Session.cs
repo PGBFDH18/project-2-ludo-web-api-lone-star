@@ -4,11 +4,13 @@ using System.Linq;
 namespace Ludo.GameLogic
 {
     // var försiktiga så ni inte blandar ihop distance och position!
+    // NOT thread safe!
     internal class Session : ISession
     {
         // special constants:
         const int NON_BOARD_POSITION = -1; // base or goal position (distance tells them apart)
         const int PIECE_COUNT = 4; // pieces per player
+        const int NOT_STARTED = -2;
 
         // special rules TODO:
         const bool ALLOW_STACKING = false; // 'true' not implemented
@@ -20,19 +22,18 @@ namespace Ludo.GameLogic
         // startingPlayer == -1 means random starting player.
         internal Session(int playerCount, BoardInfo boardInfo, Rules rules, int startingPlayer = -1)
         {
+            IsLoadedFromSavegame = false;
             pieceDistances = new int[playerCount, PIECE_COUNT];
             currentPieces = new PieceInfo[PIECE_COUNT];
             BoardInfo = boardInfo;
             Rules = rules;
             CurrentPlayer = (startingPlayer < 0 ? random.Next() : startingPlayer) % playerCount;
-            RollDie();
-            ComputePieceInfo();
-            InvokeInitialEvents();
         }
 
         // ctor (load game)
         internal Session(LudoSave save)
         {
+            IsLoadedFromSavegame = true;
             TurnCounter = save.TurnCounter;
             pieceDistances = save.pieceDistances;
             currentPieces = new PieceInfo[PIECE_COUNT];
@@ -40,8 +41,19 @@ namespace Ludo.GameLogic
             Rules = save.Rules;
             CurrentPlayer = save.CurrentPlayer;
             CurrentDieRoll = save.CurrentDieRoll;
+        }
+
+        // returns false if already started
+        public bool Start()
+        {
+            if (HasStarted)
+                return false;
+            _winner = -1;
+            if (!IsLoadedFromSavegame)
+                RollDie();
             ComputePieceInfo();
             InvokeInitialEvents();
+            return true;
         }
 
         // </ctors> <events>
@@ -58,13 +70,15 @@ namespace Ludo.GameLogic
 
         //</events> <public>
 
+        public bool IsLoadedFromSavegame { get; }
+        public bool HasStarted => _winner != NOT_STARTED;
         public bool IsAcceptingInput { get; private set; }
-        public int TurnCounter { get; private set; }
-        public int CurrentPlayer { get; private set; }
-        public int CurrentDieRoll { get; private set; }
+        public int TurnCounter { get; private set; } = -1;
+        public int CurrentPlayer { get; private set; } = -1;
+        public int CurrentDieRoll { get; private set; } = -1;
         public int InBaseCount { get; private set; }
         public int InGoalCount { get; private set; }
-        public int Winner { get; private set; } = -1;
+        public int Winner => _winner < 0 ? -1 : _winner;
         public BoardInfo BoardInfo { get; }
         public Rules Rules { get; }
 
@@ -296,7 +310,7 @@ namespace Ludo.GameLogic
             int goal = BoardInfo.GoalDistance;
             if (currentPieces.All(p => p.CurrentDistance == goal))
             {
-                Winner = CurrentPlayer;
+                _winner = CurrentPlayer;
                 // update all PieceInfo so IsInGoal is true:
                 for (int i = 0; i < currentPieces.Length; ++i)
                     currentPieces[i] = new PieceInfo(goal, NON_BOARD_POSITION);
@@ -470,5 +484,6 @@ namespace Ludo.GameLogic
         private readonly int[,] pieceDistances;
         private readonly PieceInfo[] currentPieces;
         private readonly Random random = new Random();
+        private int _winner = NOT_STARTED; // NOT_STARTED (-2): game not started, -1: no winner yet.
     }
 }

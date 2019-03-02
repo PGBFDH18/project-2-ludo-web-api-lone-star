@@ -15,14 +15,20 @@ namespace Ludo.GameLogic
         // A player has won the game! (Informational: Not accepting input.)
         event EventHandler WinnerDeclared;
 
-        // Calling MovePiece and PassTurn is only valid while this is true.
-        bool IsAcceptingInput { get; }
         // Started accepting input. (Useful for implementing bots!)
         // IMPORTANT: Remaining subscribers are NOT invoked if an invoked subscriber supplies input.
         event EventHandler AcceptingInput;
+        // Calling MovePiece and PassTurn is only valid while this is true.
+        bool IsAcceptingInput { get; }
+
+        // Has the game started? (need to call Start method?)
+        bool HasStarted { get; }
+        bool Start();
 
         // The current turn number (i.e. a counter for how many times the die has been rolled).
         int TurnCounter { get; }
+        // (Loading a game also loads the old turn counter.)
+        bool IsLoadedFromSavegame { get; }
 
         // The current player.
         int CurrentPlayer { get; }

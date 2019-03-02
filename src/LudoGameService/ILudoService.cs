@@ -13,5 +13,6 @@
         Error SetSlotReady(string gameId, int slot, UserReady userReady);
         Error UnSlotUser(string gameId, string userId);
         Error ClaimSlot(string gameId, int slot, string userId);
+        Error StartGame(string gameId, int startingSlot = -1);
     }
 }

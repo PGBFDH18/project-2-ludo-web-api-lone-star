@@ -2,7 +2,7 @@
 
 namespace Ludo.GameService
 {
-    public interface ISetupPhaseData : IUserIdArray
+    public interface ISetupPhaseData : ISlotArray
     {
         new UserReady this[int i] { get; }
 
@@ -10,9 +10,12 @@ namespace Ludo.GameService
         IReadOnlyList<UserReady> Slots { get; }
         
         int SlotCount { get; }
-        int PlayerCount { get; }
+        int OpenCount { get; }
+        //int PlayerCount { get; } (inherited)
         int OtherCount { get; }
 
+        // no further changes allowed (set when starting)
+        bool IsFinalLocked { get; }
         bool IsAllReady { get; }
         new bool IsEmpty { get; }
         bool IsAlmostEmpty { get; }

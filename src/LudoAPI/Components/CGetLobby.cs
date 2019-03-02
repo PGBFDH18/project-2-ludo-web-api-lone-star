@@ -21,7 +21,7 @@ namespace Ludo.WebAPI.Components
             lobbyInfo = new LobbyInfo
             {
                 Access = (Models.LobbyAccess)(game.Setup?.Access ?? GameService.LobbyAccess.@public),
-                State = (GameState)game.State,
+                State = (GameState)game.Phase,
                 Others = game.Setup?.Data.Others,
                 Slots = (game.Setup == null
                 ? game.Slots?.Select(u => new PlayerReady { UserId = u })

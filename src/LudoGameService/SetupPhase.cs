@@ -18,14 +18,6 @@ namespace Ludo.GameService
             Access = access;
         }
 
-        // When we transtion out from a phase and into the next in a game's lifecycle,
-        // we need a mechanism to ensure that all unfinished modifications fail.
-        // The Final Lock Down grabs the data from this phase one last time,
-        // removing it in the process, which signals to any thread still attempting
-        // modifications that their efforts are futile and must fail.
-        internal ISetupPhaseData FinalLockDown()
-            => Interlocked.Exchange(ref data, null);
-
         public LobbyAccess Access { get; private set; }
 
         public ISetupPhaseData Data => data;
@@ -35,7 +27,7 @@ namespace Ludo.GameService
             PhaseData @new, old;
             do {
                 old = data;
-                if (old == null)
+                if (old.IsFinalLocked)
                     // final locked: game is being transitioned to the next phase.
                     return ErrorCodes.E03NotInSetupPhase;
                 if (old.IsEmpty)
@@ -58,7 +50,7 @@ namespace Ludo.GameService
             do
             {
                 old = data;
-                if (old == null)
+                if (old.IsFinalLocked)
                     // final locked: game is being transitioned to the next phase.
                     return ErrorCodes.E03NotInSetupPhase;
                 @new = old.TryMoveFromSlotToOthers(userId);
@@ -84,7 +76,7 @@ namespace Ludo.GameService
             do
             {
                 old = data;
-                if (old == null)
+                if (old.IsFinalLocked)
                     // final locked: game is being transitioned to the next phase.
                     return ErrorCodes.E03NotInSetupPhase;
                 if (old.IsEmpty)
@@ -118,7 +110,7 @@ namespace Ludo.GameService
             do
             {
                 old = data;
-                if (old == null)
+                if (old.IsFinalLocked)
                     // final locked: game is being transitioned to the next phase.
                     return ErrorCodes.E03NotInSetupPhase;
                 if (unchecked((uint)slot >= (uint)old.SlotCount))
@@ -148,7 +140,7 @@ namespace Ludo.GameService
             do
             {
                 old = data;
-                if (old == null)
+                if (old.IsFinalLocked)
                     // final locked: game is being transitioned to the next phase.
                     return ErrorCodes.E03NotInSetupPhase;
                 if (old.IsEmpty)
@@ -172,7 +164,7 @@ namespace Ludo.GameService
             do
             {
                 old = data;
-                if (old == null)
+                if (old.IsFinalLocked)
                     // final locked: game is being transitioned to the next phase.
                     return ErrorCodes.E03NotInSetupPhase;
                 if (old.IsEmpty)
@@ -191,18 +183,33 @@ namespace Ludo.GameService
             //return old != null;
         }
 
+        internal Error TryFinalLock()
+        {
+            PhaseData old, @new;
+            do
+            {
+                old = data;
+                if (old.IsFinalLocked)
+                    // final locked: game is being transitioned to the next phase.
+                    return ErrorCodes.E03NotInSetupPhase;
+                @new = old.TryFinalLock();
+                if (@new == null)
+                    return ErrorCodes.E14NotAllUsersReady;
+            }
+            while (Interlocked.CompareExchange(ref data, @new, old) != old);
+            return ErrorCodes.E00NoError;
+        }
+
         #region --- IGameStateSession ---
-        GameLifecycle IGamePhase.State => GameLifecycle.setup;
+        GameLifecycle IGamePhase.Phase => data.IsFinalLocked ? GameLifecycle.starting : GameLifecycle.setup;
 
         SetupPhase IGamePhase.Setup => this;
 
-        IngameSession IGamePhase.Ingame => null;
+        IngamePhase IGamePhase.Ingame => null;
 
         FinishedPhase IGamePhase.Finished => null;
 
-        //ISharedGP IGamePhase.Shared => this;
-
-        IUserIdArray IGamePhase.Slots => data;
+        ISlotArray IGamePhase.Slots => data;
         #endregion
     }
 }

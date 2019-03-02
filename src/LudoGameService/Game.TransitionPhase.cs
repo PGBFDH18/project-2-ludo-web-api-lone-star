@@ -3,21 +3,26 @@
 
     public partial class Game
     {
-        // provides transition states.
+        // helps with transition phases.
         private class TransitionPhase : IGamePhase
         {
-            public static readonly IGamePhase Creating = new TransitionPhase(GameLifecycle.creating);
-            public static readonly IGamePhase Starting = new TransitionPhase(GameLifecycle.starting);
-            public static readonly IGamePhase Ending = new TransitionPhase(GameLifecycle.ending);
+            public static readonly IGamePhase Creating = new TransitionPhase(GameLifecycle.creating, null);
 
-            private TransitionPhase(GameLifecycle state) => _state = state;
-            private readonly GameLifecycle _state;
-            GameLifecycle IGamePhase.State => _state;
-            SetupPhase IGamePhase.Setup => null;
-            IngameSession IGamePhase.Ingame => null;
-            FinishedPhase IGamePhase.Finished => null;
-            //ISharedGP IGamePhase.Shared => null;
-            IUserIdArray IGamePhase.Slots => null;
+            internal TransitionPhase(GameLifecycle newPhase, IGamePhase oldPhase)
+            {
+                _newPhase = newPhase;
+                _oldPhase = oldPhase;
+            }
+
+            private readonly GameLifecycle _newPhase;
+            private readonly IGamePhase _oldPhase;
+
+            public GameLifecycle Phase => _newPhase;
+            public ISlotArray Slots => _oldPhase?.Slots;
+
+            SetupPhase IGamePhase.Setup => _oldPhase?.Setup;
+            IngamePhase IGamePhase.Ingame => _oldPhase?.Ingame;
+            FinishedPhase IGamePhase.Finished => _oldPhase?.Finished;
         }
     }
 }

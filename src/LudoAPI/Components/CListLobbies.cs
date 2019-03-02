@@ -18,7 +18,7 @@ namespace Ludo.WebAPI.Components
         {
             // a bit of a Linq mess here...
             return ludoService.Games
-                .Where(kvp => kvp.Value.Phase.State <= GameService.GameLifecycle.setup
+                .Where(kvp => kvp.Value.Phase.Phase == GameService.GameLifecycle.setup
                 && kvp.Value.Phase.Setup != null
                 && (show == ShowLobby.all
                 || (show == ShowLobby.full && kvp.Value.Phase.Setup.Data.OpenCount == 0)

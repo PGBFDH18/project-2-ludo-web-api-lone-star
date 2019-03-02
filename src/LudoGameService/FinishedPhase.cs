@@ -2,12 +2,12 @@
 {
     public class FinishedPhase : IGamePhase//, ISharedGP
     {
-        private readonly IUserIdArray players;
+        private readonly ISlotArray players;
 
-        public FinishedPhase(byte winner, IUserIdArray players)
+        public FinishedPhase(byte winner, ISlotArray players)
         {
             WinnerSlot = winner;
-            this.players = new UserArray(players);
+            this.players = new SlotArray(players);
         }
 
         // index of the winning slot.
@@ -16,17 +16,17 @@
         public string WinnerId => players[WinnerSlot];
 
         #region --- IGameStateSession ---
-        GameLifecycle IGamePhase.State => GameLifecycle.finished;
+        GameLifecycle IGamePhase.Phase => GameLifecycle.finished;
 
         SetupPhase IGamePhase.Setup => null;
 
-        IngameSession IGamePhase.Ingame => null;
+        IngamePhase IGamePhase.Ingame => null;
 
         FinishedPhase IGamePhase.Finished => this;
 
         //ISharedGP IGamePhase.Shared => this;
 
-        IUserIdArray IGamePhase.Slots => players;
+        ISlotArray IGamePhase.Slots => players;
         #endregion
     }
 }

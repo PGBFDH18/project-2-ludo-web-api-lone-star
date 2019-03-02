@@ -11,15 +11,15 @@
     // easy thread-safety (a GameState change is a simple interlocked exchange of a single field).
     public interface IGamePhase
     {
-        GameLifecycle State { get; }
+        GameLifecycle Phase { get; }
 
         // WARNING: Only one of these three are non-null at any given time!
         SetupPhase Setup { get; }
-        IngameSession Ingame { get; }
+        IngamePhase Ingame { get; }
         FinishedPhase Finished { get; }
 
         // An array of encoded userIds, in slot order, with null for empty slots.
-        IUserIdArray Slots { get; }
+        ISlotArray Slots { get; }
         //ISharedGSS Shared { get; }
     }
     // A similar strategy can be used to avoid casting in other situations too.

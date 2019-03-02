@@ -18,6 +18,7 @@ namespace Ludo.GameService
             E10InvalidSlotIndex = 10,
             E11UserNotInLobby = 11,
             E12UserIdMismatch = 12,
-            E13MaxSlotsReached = 13;
+            E13MaxSlotsReached = 13,
+            E14NotAllUsersReady = 14;
     }
 }

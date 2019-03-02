@@ -5,10 +5,14 @@ namespace Ludo.WebAPI.Components
 {
     public class CStartGame : IStartGame
     {
-        public ErrorCode TryStartGame(string gameId)
-        {
-            throw new System.NotImplementedException(); // TODO <--------------
+        private readonly ILudoService ludoService;
+
+        public CStartGame(ILudoService ludoService) {
+            this.ludoService = ludoService;
         }
+
+        public ErrorCode TryStartGame(string gameId)
+            => ludoService.StartGame(gameId);
     }
 
     public class CStartGameMock : IStartGame
