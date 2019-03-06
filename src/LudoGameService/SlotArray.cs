@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Ludo.GameService
+namespace Ludo.API.Service
 {
     // Simple shared implementation of IUserIdArray
     internal class SlotArray : ISlotArray

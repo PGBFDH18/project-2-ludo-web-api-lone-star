@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Ludo.GameService
+namespace Ludo.API.Service.Extensions
 {
     // Extensions for expressionbodied modification of T[] arrays.
-    internal static class TArrayExtensions
+    public static class TArrayExtensions
     {
         // Makes a copy of the array, optionally resizing it in the process
         public static T[] CopyResize<T>(this T[] source, int sizeDiff = 0)

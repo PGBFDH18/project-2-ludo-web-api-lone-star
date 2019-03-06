@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 
-namespace Ludo.GameService
+namespace Ludo.API.Service
 {
     // Thread-safe (hopefully)
     public class GameStorage : IEnumerable<KeyValuePair<Id, Game>>

@@ -2,11 +2,11 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 
-namespace Ludo.WebAPI.Controllers
+namespace Ludo.API.Web.Controllers
 {
     public abstract class LudoControllerBase : ControllerBase
     {
-        protected internal const string ROUTE_gameId = "{gameId:required:minLength(2)}";
+        protected internal const string ROUTE_gameId = "{gameId:required:minLength(3)}";
         protected internal const string ROUTE_slotStr = "{slotStr:required}";
         
         protected LudoControllerBase() { }

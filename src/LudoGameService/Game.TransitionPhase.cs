@@ -1,4 +1,6 @@
-﻿namespace Ludo.GameService
+﻿using Ludo.API.Models;
+
+namespace Ludo.API.Service
 {
 
     public partial class Game
@@ -6,19 +8,20 @@
         // helps with transition phases.
         private class TransitionPhase : IGamePhase
         {
-            public static readonly IGamePhase Creating = new TransitionPhase(GameLifecycle.creating, null);
+            public static readonly IGamePhase Creating = new TransitionPhase(GamePhase.creating, null);
 
-            internal TransitionPhase(GameLifecycle newPhase, IGamePhase oldPhase)
+            internal TransitionPhase(GamePhase newPhase, IGamePhase oldPhase)
             {
                 _newPhase = newPhase;
                 _oldPhase = oldPhase;
             }
 
-            private readonly GameLifecycle _newPhase;
+            private readonly GamePhase _newPhase;
             private readonly IGamePhase _oldPhase;
 
-            public GameLifecycle Phase => _newPhase;
+            public GamePhase Phase => _newPhase;
             public ISlotArray Slots => _oldPhase?.Slots;
+            public string Winner => _oldPhase?.Winner;
 
             SetupPhase IGamePhase.Setup => _oldPhase?.Setup;
             IngamePhase IGamePhase.Ingame => _oldPhase?.Ingame;

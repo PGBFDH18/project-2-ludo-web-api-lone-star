@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 
-namespace Ludo.GameService
+namespace Ludo.API.Service
 {
     // Thread-safe (hopefully)
     public class UserStorage : IEnumerable<KeyValuePair<Id, UserData>>

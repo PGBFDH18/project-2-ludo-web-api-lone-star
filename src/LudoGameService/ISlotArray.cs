@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Ludo.GameService
+namespace Ludo.API.Service
 {
     public interface ISlotArray : IEnumerable<string>
     {

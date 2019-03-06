@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 
-namespace Ludo.GameService
+namespace Ludo.API.Service
 {
     // Thread-safe
     // Use as component inside classes that manage Ids

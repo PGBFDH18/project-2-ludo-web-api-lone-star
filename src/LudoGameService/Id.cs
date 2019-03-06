@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Ludo.GameService
+namespace Ludo.API.Service
 {
     // Ids are encoded left-to-right;
     // a numeric id of 1 with an encoding length of 3, would look like '100';

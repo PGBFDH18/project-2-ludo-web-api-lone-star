@@ -85,7 +85,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorCode'
+                $ref: '#/components/schemas/Error'
           #TODO: add detailed response, e.g. too short/long, profane, etc.
   
   /ludo/user/{userId}:
@@ -169,18 +169,28 @@ paths:
         content:
           application/JSON:
             schema:
-              $ref: '#/components/schemas/CreateLobby'
+              oneOf:
+                - $ref: '#/components/schemas/CreateLobby'
+                - $ref: '#/components/schemas/LoadLobby'
       responses:
         '201': # Created
           description: >
-            Returns the id of the newly created game (see Location header).
-            The creator of a lobby is always assigned to slot 0.
+            Returns the id of the newly created game in the Location header.
+            The creator of a lobby is always assigned to slot 0 when creating a new game.
         '400':
           description: Player not specified.
         '404':
-          description: No such player exists.
+          description: No such user exists (userId included).
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/Error'
         '422':
-          description: SlotCount is out of range.
+          description: SlotCount is out of range or invalid save data.
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/Error'
         #TODO: some form of auth?
   
   /ludo/lobby/{gameId}:
@@ -237,14 +247,14 @@ paths:
           content:
             application/JSON:
               schema:
-                $ref: '#/components/schemas/ErrorCode'
+                $ref: '#/components/schemas/Error'
         '409': # "This response is sent when a request conflicts with the current state of the server."
           description: Unable to join game
           content:
             application/JSON:
               schema:
-                $ref: '#/components/schemas/ErrorCode'
-          #TODO: supply exact reason in body (ErrorCode object)
+                $ref: '#/components/schemas/Error'
+          #TODO: supply exact reason in body (Error object)
     
     post:
       operationId: ludoStartGame
@@ -266,7 +276,7 @@ paths:
           content:
             application/JSON:
               schema:
-                $ref: '#/components/schemas/ErrorCode'
+                $ref: '#/components/schemas/Error'
       #TODO: require game auth token + 401 & 403 response
     
     delete:
@@ -294,13 +304,13 @@ paths:
           content:
             application/JSON:
               schema:
-                $ref: '#/components/schemas/ErrorCode'
+                $ref: '#/components/schemas/Error'
         '409':
           description: Game is not in the setup phase.
           content:
             application/JSON:
               schema:
-                $ref: '#/components/schemas/ErrorCode'
+                $ref: '#/components/schemas/Error'
       #TODO: require game auth token + 401 & 403 response
 
   /ludo/lobby/{gameId}/{slot}:
@@ -327,7 +337,7 @@ paths:
           content:
             application/JSON:
               schema:
-                $ref: '#/components/schemas/ErrorCode'
+                $ref: '#/components/schemas/Error'
         '409':
           description: Game not in setup stage (i.e. already in progress / ended).
       #TODO: require game auth token + 401 & 403 response
@@ -359,13 +369,13 @@ paths:
           content:
             application/JSON:
               schema:
-                $ref: '#/components/schemas/ErrorCode'
+                $ref: '#/components/schemas/Error'
         '409':
           description: Unable to claim slot.
           content:
             application/JSON:
               schema:
-                $ref: '#/components/schemas/ErrorCode'
+                $ref: '#/components/schemas/Error'
       #TODO: require game auth token + 401 & 403 response
     
     put:
@@ -391,7 +401,7 @@ paths:
           content:
             application/JSON:
               schema:
-                $ref: '#/components/schemas/ErrorCode'
+                $ref: '#/components/schemas/Error'
         '409':
           description: >
             Unable to set ready status
@@ -399,7 +409,7 @@ paths:
           content:
             application/JSON:
               schema:
-                $ref: '#/components/schemas/ErrorCode'
+                $ref: '#/components/schemas/Error'
       #TODO: require game auth token + 401 & 403 response
   
   /ludo/board:
@@ -475,23 +485,33 @@ paths:
           description: Game has already started (perhaps even ended).
       #TODO: require game auth token + 401 & 403 response
   
-  /ludo/games:
+  /ludo/game:
     get:
+      operationId: ludoListGames
       tags:
         - users
       summary: Returns a list of games.
-      description: Only returns running games by default.
+      description: Only returns ingame games by default.
       parameters:
         - name: show
           in: query
-          description: TODO # <--------------------------------------
+          description: Filter the game list (ingame, finished, all).
           schema:
             type: string
-            enum: [running, completed, all]
-            default: running
-        - name: id
+            enum: [ingame, finished, all]
+            default: ingame
+        - name: gameId
           in: query
-          description: Search for a specific game (implies show=all).
+          description: |
+            Search for a specific game (implies show=all).
+            Note that userId is ignored if gameId is specified.
+          schema:
+            type: string
+        - name: userId
+          in: query
+          description: |
+            Search for all games with this user.
+            Note that userId is ignored if gameId is specified.
           schema:
             type: string
       responses:
@@ -504,53 +524,31 @@ paths:
         '400':
           description: bad input parameter
         '404':
-          description: No such game exists. (If using the id parameter.)
+          description: No such game or user exists (only in searches).
   
   /ludo/game/{gameId}:
     parameters: 
       - $ref: '#/components/parameters/gameIdPath'
+    
     get:
+      operationId: ludoGetCurrent
       tags:
         - users
-      summary: Get current player (slot index) and die roll.
+      summary: Get current turn, player (slot index), and die roll.
       description: |
-        The state of a game (CurrentPlayer, CurrentDieRoll).
+        The state of a game (TurnCount, CurrentPlayer, CurrentDieRoll).
         Combine this with board state and lobby data to have a complete save.
-      operationId: ludoGetCurrent
       responses:
         '200':
           description: OK
           content:
             application/JSON:
               schema:
-                $ref: '#/components/schemas/PlayerDie'
+                $ref: '#/components/schemas/TurnSlotDie'
         '404':
           description: No such game exists.
         '409':
-          description: Game has not started or has already ended.
-    put:
-      tags:
-        - players
-      summary: Set current player (slot index) and die roll.
-      description: Setting current player and die roll can only be done while still in lobby.
-      operationId: ludoSetCurrent
-      requestBody:
-        description: Current player (slot index) and their die roll.
-        required: true
-        content:
-          application/JSON:
-            schema:
-              $ref: '#/components/schemas/PlayerDie'
-      responses:
-        '204':
-          description: OK
-        '400':
-          description: Bad input parameter.
-        '404':
-          description: No such game exists.
-        '409':
-          description: Game has already started / ended.
-      #TODO: require game auth token + 401 & 403 response
+          description: Game is not in the ingame phase.
   
   /ludo/game/{gameId}/{slot}:
     parameters:
@@ -559,12 +557,13 @@ paths:
     # get: decision making info
     # post: PassTurn!
     # delete: concede.
+    
     get:
+      operationId: ludoGetTurnInfo
       tags:
         - users
       summary: Get a TurnInfo object for the current player (slot index).
       description: The TurnInfo object contains information on the current player's available moves.
-      operationId: ludoGetTurnInfo
       responses:
         '200':
           description: OK
@@ -575,8 +574,20 @@ paths:
         '400':
           description: bad input parameter
         '404':
-          description: No such game exists.
+          description: No such game / slot exists.
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Slot does not correspond to the current player. (It's not your turn.)
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
     post:
+      operationId: ludoPassTurn
       tags:
         - players
       summary: Ends the turn without moving.
@@ -584,7 +595,6 @@ paths:
         Passes the turn over to the next player; unless the player has a bonus turn ("IsLucky"),
         in which case the current player remains active and only the die is re-rolled.
         Passing is by default only allowed if no move is possible on the current turn.
-      operationId: ludoPassTurn
       responses:
         '204':
           description: OK
@@ -597,7 +607,9 @@ paths:
             Rules do not allow passing the turn, or not the active player
             (e.g. game has ended / not started yet).
       #TODO: require game auth token + 401 & 403 response
+    
     delete:
+      operationId: ludoConcede
       tags:
         - players
       summary: Concede.
@@ -605,7 +617,6 @@ paths:
         Irrevocably hands over control of your pieces to a bot.
         If only one human player remains after a concede, that player is declared the winner and the game ends.
         (wip)
-      operationId: ludoConcede
       responses:
         '204':
           description: OK (Also sent if the player has already conceded and / or the game has ended.
@@ -760,7 +771,7 @@ components:
         minimum: 0
         maximum: 3
   schemas:
-    ErrorCode:
+    Error:
       type: object
       parameters:
         code:
@@ -813,6 +824,23 @@ components:
           items:
             $ref: '#/components/schemas/LobbyReservation'
 
+    LoadLobby:
+      type: object
+      description: Information required to create a lobby from a saved game.
+      required:
+        - save
+      properties:
+        save:
+          $ref:'#/components/schemas/GameSave'
+        access:
+          $ref: '#/components/schemas/LobbyAccess'
+        strict:
+          type: boolean
+          description: >
+            Reservations are always generated for the old participants when loading a save.
+            This determines if those reservations are strict or relaxed.
+          default: false
+
     UserInfo:
       type: object
       properties:
@@ -849,8 +877,10 @@ components:
           type: boolean
           description: >
             If the reservation is strict, then no other player may take this slot.
-            Otherwise it functions as a normal slot, except that a player that has
-            a reservation to may evict non-reserved players to claim it.
+            Conversely a relaxed reservation behaves like a normal slot, except
+            that a player that has a reservation to may evict non-reserved players
+            to claim it.
+          default: false
     
     LobbyListEntry:
       type: object
@@ -911,9 +941,9 @@ components:
         winner:
           type: string
           description: Winning player (omitted / empty if no winner has been decided).
-        players:
+        slots:
           type: array
-          description: An array of players that are in this game / lobby.
+          description: A slot array of userIds (or null for empty slots).
           items:
             type: string
         #TODO: add more properties..?
@@ -992,15 +1022,21 @@ components:
       items:
         $ref: '#/components/schemas/PieceDistances'
     
-    PlayerDie:
+    TurnSlotDie:
       type: object
       required:
+        - turn
         - player
         - die
       properties:
-        player:
+        turn:
           type: integer
-          description: Id of current player.
+          description: Which turn the game is on.
+          format: int32
+          minimum: 0
+        slot:
+          type: integer
+          description: Slot index of current player.
           format: int32
           minimum: 0
           maximum: 3
@@ -1043,7 +1079,7 @@ components:
         board:
           $ref: '#/components/schemas/BoardState'
         current:
-          $ref: '#/components/schemas/PlayerDie'
+          $ref: '#/components/schemas/TurnSlotDie'
         lobby:
           $ref: '#/components/schemas/LobbySave'
         #TODO is any data missing to make this a complete game save?

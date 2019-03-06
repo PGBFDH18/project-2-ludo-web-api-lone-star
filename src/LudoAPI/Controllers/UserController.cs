@@ -1,26 +1,27 @@
-﻿using Ludo.GameService;
-using Ludo.WebAPI.Models;
+﻿using Ludo.API.Models;
+using Ludo.API.Service.Components;
+using Ludo.API.Service.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 
-namespace Ludo.WebAPI.Controllers
+namespace Ludo.API.Web.Controllers
 {
     [Route("ludo/user")]
     [ApiController]
     public class UserController : LudoControllerBase
     {
-        private readonly Components.IListUsers listUser;
-        private readonly Components.IFindUser findUser;
-        private readonly Components.IUserNameAcceptable userNameAcceptable;
-        private readonly Components.ICreateUser createUser;
-        private readonly Components.IGetUser getUser;
+        private readonly IListUsers listUser;
+        private readonly IFindUser findUser;
+        private readonly IUserNameAcceptable userNameAcceptable;
+        private readonly ICreateUser createUser;
+        private readonly IGetUser getUser;
 
         public UserController(
-            Components.IListUsers listUser,
-            Components.IFindUser findUser,
-            Components.IUserNameAcceptable userNameAcceptable,
-            Components.ICreateUser createUser,
-            Components.IGetUser getUser)
+            IListUsers listUser,
+            IFindUser findUser,
+            IUserNameAcceptable userNameAcceptable,
+            ICreateUser createUser,
+            IGetUser getUser)
         {
             this.listUser = listUser;
             this.findUser = findUser;
@@ -30,8 +31,8 @@ namespace Ludo.WebAPI.Controllers
         }
 
         // operationId: ludoListUsers
-        // 200 response: Done
-        // 404 response: Done
+        [ProducesResponseType(200, Type = typeof(IEnumerable<string>))]
+        [ProducesResponseType(404)]
         [HttpGet] public ActionResult<IEnumerable<string>> ListUsers([FromQuery]string userName)
         {
             IEnumerable<string> result;
@@ -46,13 +47,13 @@ namespace Ludo.WebAPI.Controllers
         [ProducesResponseType(201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(409)]
-        [ProducesResponseType(422, Type = typeof(ErrorCode))]
+        [ProducesResponseType(422, Type = typeof(Error))]
         [HttpPost] public IActionResult Post([FromHeader]string userName)
         {
             if (string.IsNullOrEmpty(userName))
                 return BadRequest();
             var err = userNameAcceptable.IsUserNameAcceptable(userName);
-            if (err != ErrorCodes.E00NoError)
+            if (err != Error.Codes.E00NoError)
                 return UnprocessableEntity(err);
             if (createUser.TryCreateUser(userName, out string userId))
                 return Created(userId, null);

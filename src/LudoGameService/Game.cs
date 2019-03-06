@@ -1,9 +1,10 @@
-﻿using System;
+﻿using Ludo.API.Models;
+using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 
-namespace Ludo.GameService
+namespace Ludo.API.Service
 {
     public partial class Game
     {
@@ -13,7 +14,7 @@ namespace Ludo.GameService
                 _phase = lobby;
         }
 
-        public string Winner => _phase.Finished?.WinnerId;
+        public string Winner => _phase.Winner;
 
         // WARNING: does NOT check that the user exists!
         internal Error TryAddUser(string userId, out int slotIndex)
@@ -22,7 +23,7 @@ namespace Ludo.GameService
             slotIndex = -1;
             var setup = _phase.Setup;
             if (setup == null)
-                return ErrorCodes.E03NotInSetupPhase;
+                return Error.Codes.E03NotInSetupPhase;
             return setup.TryAddUser(userId, out slotIndex); // 00,01,03,04
         }
 
@@ -39,11 +40,11 @@ namespace Ludo.GameService
         {
             var setup = _phase.Setup;
             if (setup == null)
-                return ErrorCodes.E03NotInSetupPhase;
+                return Error.Codes.E03NotInSetupPhase;
             var err = setup.TryFinalLock();
-            if (err != ErrorCodes.E00NoError)
+            if (err != Error.Codes.E00NoError)
                 return err;
-            var trans = new TransitionPhase(GameLifecycle.starting, setup);
+            var trans = new TransitionPhase(GamePhase.starting, setup);
             //since only once thread can successfully call TryFinalLock, we don't need a CompareExchange here:
             Volatile.Write(ref _phase, trans); // (this is most likely redundant, but it occurs seldom so just in case...)
 
@@ -57,13 +58,13 @@ namespace Ludo.GameService
             // TODO^
             ingame.Start();
 
-            return ErrorCodes.E00NoError;
+            return Error.Codes.E00NoError;
         }
 
         // thread-safe, lock-free, performs roll-back on to_factory failure.
         // Intent: I dont want to call the factory before I can successfully assign it.
         // (I could have used a lock, but I didn't...)
-        private bool TryTransition(GameLifecycle from, IGamePhase via, Func<IGamePhase> to_factory)
+        private bool TryTransition(GamePhase from, IGamePhase via, Func<IGamePhase> to_factory)
         {
             // null-checks + transition direction check + via.State is an even (i.e. is transitional) check.
             Debug.Assert(via != null && to_factory != null && (via.Phase - 1 == from) && ((int)via.Phase & 1) == 0);

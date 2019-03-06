@@ -1,29 +1,29 @@
-﻿using Ludo.GameService;
-using Ludo.WebAPI.Components;
+﻿using Ludo.API.Models;
+using Ludo.API.Service.Components;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Ludo.WebAPI.Controllers
+namespace Ludo.API.Web.Controllers
 {
     [Route("ludo/board/" + ROUTE_gameId)]
     [ApiController]
     public class BoardGameController : LudoControllerBase
     {
-        private readonly Components.IBoardState boardState;
+        private readonly IBoardState boardState;
 
         public BoardGameController(IBoardState boardState) {
             this.boardState = boardState;
         }
 
         // operationId: ludoGetBoardState
-        // 201 response: Done
-        // 404 response: Done
-        // 409 response: Done
-        [HttpGet] public ActionResult<Models.BoardState> Get ([FromRoute]string gameId)
+        [ProducesResponseType(201, Type = typeof(BoardState))]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(409)]
+        [HttpGet] public ActionResult<BoardState> Get ([FromRoute]string gameId)
         {
             var err = boardState.TryGetBoardState(gameId, out Models.BoardState bstate);
-            if (err == ErrorCodes.E00NoError)
+            if (err == Error.Codes.E00NoError)
                 return bstate;
-            if (err == ErrorCodes.E01GameNotFound)
+            if (err == Error.Codes.E01GameNotFound)
                 return NotFound();
             return Conflict();
         }

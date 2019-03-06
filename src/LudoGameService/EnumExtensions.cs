@@ -1,8 +1,8 @@
 ﻿using System;
 
-namespace Ludo.GameService
+namespace Ludo.API.Service.Extensions
 {
-    internal static class EnumExtensions
+    public static class EnumExtensions
     {
         // Returns true if the value is a named / declared.
         // Remark: Does not work for flags, same as System.Enum.IsDefined.

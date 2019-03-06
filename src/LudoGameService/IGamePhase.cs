@@ -1,4 +1,6 @@
-﻿namespace Ludo.GameService
+﻿using Ludo.API.Models;
+
+namespace Ludo.API.Service
 {
     // I call this a Type Bundling Interface. (Probably not the first to do this, so an official name probably exists.)
     // It's the best approach when you want to store disparate types in a single field with maximum performance:
@@ -11,7 +13,7 @@
     // easy thread-safety (a GameState change is a simple interlocked exchange of a single field).
     public interface IGamePhase
     {
-        GameLifecycle Phase { get; }
+        GamePhase Phase { get; }
 
         // WARNING: Only one of these three are non-null at any given time!
         SetupPhase Setup { get; }
@@ -20,16 +22,12 @@
 
         // An array of encoded userIds, in slot order, with null for empty slots.
         ISlotArray Slots { get; }
-        //ISharedGSS Shared { get; }
+        // UserId of the winner, or null.
+        string Winner { get; }
     }
     // A similar strategy can be used to avoid casting in other situations too.
     // E.g. when you have a child class that implements an interface but you're holding an instance of the base class.
     // It might look a bit odd in the implementing type, but once you see the code in heavy use it looks beutiful...
     // You are actually moving the responsibility of the cast from the would be caster to the castee,
     // and in the castee the type check is simply "return this" - which is a compile time verified.
-
-    // I put the shared features in a separate interface to make the above more clear. No other reason.
-    //public interface ISharedGP
-    //{
-    //}
 }

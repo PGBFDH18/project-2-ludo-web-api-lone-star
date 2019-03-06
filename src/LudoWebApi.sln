@@ -7,7 +7,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LudoGameLogic", "LudoGameLo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LudoWebAPI", "LudoAPI\LudoWebAPI.csproj", "{B7F6C341-58FA-4F3D-A12D-AF5F85C40055}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LudoGameService", "LudoGameService\LudoGameService.csproj", "{208ED6D3-C503-4AC4-83EC-813F9FEE2C70}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LudoGameService", "LudoGameService\LudoGameService.csproj", "{208ED6D3-C503-4AC4-83EC-813F9FEE2C70}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LudoApiModels", "LudoModels\LudoApiModels.csproj", "{7692D6E2-A557-4D28-9341-83A81D7958F7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -55,6 +57,18 @@ Global
 		{208ED6D3-C503-4AC4-83EC-813F9FEE2C70}.Release|x64.Build.0 = Release|Any CPU
 		{208ED6D3-C503-4AC4-83EC-813F9FEE2C70}.Release|x86.ActiveCfg = Release|Any CPU
 		{208ED6D3-C503-4AC4-83EC-813F9FEE2C70}.Release|x86.Build.0 = Release|Any CPU
+		{7692D6E2-A557-4D28-9341-83A81D7958F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7692D6E2-A557-4D28-9341-83A81D7958F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7692D6E2-A557-4D28-9341-83A81D7958F7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{7692D6E2-A557-4D28-9341-83A81D7958F7}.Debug|x64.Build.0 = Debug|Any CPU
+		{7692D6E2-A557-4D28-9341-83A81D7958F7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7692D6E2-A557-4D28-9341-83A81D7958F7}.Debug|x86.Build.0 = Debug|Any CPU
+		{7692D6E2-A557-4D28-9341-83A81D7958F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7692D6E2-A557-4D28-9341-83A81D7958F7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7692D6E2-A557-4D28-9341-83A81D7958F7}.Release|x64.ActiveCfg = Release|Any CPU
+		{7692D6E2-A557-4D28-9341-83A81D7958F7}.Release|x64.Build.0 = Release|Any CPU
+		{7692D6E2-A557-4D28-9341-83A81D7958F7}.Release|x86.ActiveCfg = Release|Any CPU
+		{7692D6E2-A557-4D28-9341-83A81D7958F7}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

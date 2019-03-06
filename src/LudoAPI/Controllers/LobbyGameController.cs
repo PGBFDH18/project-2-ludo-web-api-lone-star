@@ -1,35 +1,32 @@
-﻿using Ludo.GameService;
-using Ludo.WebAPI.Models;
+﻿using Ludo.API.Models;
+using Ludo.API.Service;
+using Ludo.API.Service.Components;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Linq;
 
-// Placeholder: Done
-// Proper Code: TODO
-namespace Ludo.WebAPI.Controllers
+namespace Ludo.API.Web.Controllers
 {
     [Route("ludo/lobby/" + ROUTE_gameId)]
     [ApiController]
     public class LobbyGameController : LudoControllerBase
     {
         private readonly ILudoService ludoService;
-        private readonly Components.IIsKnown isKnown;
-        private readonly Components.IGetLobby getLobby;
-        private readonly Components.IJoinLobby joinLobby;
-        private readonly Components.IStartGame startGame;
-        private readonly Components.ILeaveLobby leaveLobby;
-        private readonly Components.IGetPlayerReady getPlayerReady;
-        private readonly Components.ISlotUser slotUser;
+        private readonly IIsKnown isKnown;
+        private readonly IGetLobby getLobby;
+        private readonly IJoinLobby joinLobby;
+        private readonly IStartGame startGame;
+        private readonly ILeaveLobby leaveLobby;
+        private readonly IGetPlayerReady getPlayerReady;
+        private readonly ISlotUser slotUser;
 
         public LobbyGameController(
             ILudoService ludoService,
-            Components.IIsKnown isKnown,
-            Components.IGetLobby getLobby,
-            Components.IJoinLobby joinLobby,
-            Components.IStartGame startGame,
-            Components.ILeaveLobby leaveLobby,
-            Components.IGetPlayerReady getPlayerReady,
-            Components.ISlotUser slotUser)
+            IIsKnown isKnown,
+            IGetLobby getLobby,
+            IJoinLobby joinLobby,
+            IStartGame startGame,
+            ILeaveLobby leaveLobby,
+            IGetPlayerReady getPlayerReady,
+            ISlotUser slotUser)
         {
             this.ludoService = ludoService;
             this.isKnown = isKnown;
@@ -42,8 +39,8 @@ namespace Ludo.WebAPI.Controllers
         }
 
         // operationId: ludoGetLobby
-        // 200 response: Done
-        // 404 response: Done
+        [ProducesResponseType(200, Type = typeof(LobbyInfo))]
+        [ProducesResponseType(404)]
         [HttpGet] public ActionResult<LobbyInfo> Get (
             [FromRoute]string gameId)
         {
@@ -55,17 +52,17 @@ namespace Ludo.WebAPI.Controllers
         // operationId: ludoJoinLobby
         [ProducesResponseType(200, Type = typeof(int))]
         [ProducesResponseType(400)]
-        [ProducesResponseType(404, Type = typeof(ErrorCode))]
-        [ProducesResponseType(409, Type = typeof(ErrorCode))]
+        [ProducesResponseType(404, Type = typeof(Error))]
+        [ProducesResponseType(409, Type = typeof(Error))]
         [HttpPatch] public ActionResult<int> Patch (
             [FromRoute]string gameId, [FromHeader]string userId)
         {
             if (string.IsNullOrEmpty(userId))
                 return BadRequest();
             var err = joinLobby.TryJoinLobby(gameId, userId, out int slot);
-            if (err == ErrorCodes.E00NoError)
+            if (err == Error.Codes.E00NoError)
                 return slot;
-            if (err == ErrorCodes.E01GameNotFound || err == ErrorCodes.E02UserNotFound)
+            if (err == Error.Codes.E01GameNotFound || err == Error.Codes.E02UserNotFound)
                 return NotFound(err);
             else
                 return Conflict(err);
@@ -74,13 +71,13 @@ namespace Ludo.WebAPI.Controllers
         // operationId: ludoStartGame
         [ProducesResponseType(201)]
         [ProducesResponseType(404)]
-        [ProducesResponseType(409, Type = typeof(ErrorCode))]
+        [ProducesResponseType(409, Type = typeof(Error))]
         [HttpPost] public IActionResult Post([FromRoute]string gameId)
         {
             var err = startGame.TryStartGame(gameId);
-            if (err == ErrorCodes.E00NoError)
+            if (err == Error.Codes.E00NoError)
                 return Created($"../game/{gameId}", null);
-            if (err == ErrorCodes.E01GameNotFound)
+            if (err == Error.Codes.E01GameNotFound)
                 return NotFound();
             return Conflict(err);
         }
@@ -88,17 +85,17 @@ namespace Ludo.WebAPI.Controllers
         // operationId: ludoLeaveLobby
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
-        [ProducesResponseType(404, Type = typeof(ErrorCode))]
-        [ProducesResponseType(409, Type = typeof(ErrorCode))]
+        [ProducesResponseType(404, Type = typeof(Error))]
+        [ProducesResponseType(409, Type = typeof(Error))]
         [HttpDelete] public IActionResult Delete (
             [FromRoute]string gameId, [FromHeader]string userId)
         {
             if (string.IsNullOrEmpty(userId))
                 return BadRequest();
             var err = leaveLobby.TryLeaveLobby(userId: userId, gameId: gameId);
-            if (err == ErrorCodes.E00NoError)
+            if (err == Error.Codes.E00NoError)
                 return NoContent();
-            if (err == ErrorCodes.E01GameNotFound || err == ErrorCodes.E02UserNotFound)
+            if (err == Error.Codes.E01GameNotFound || err == Error.Codes.E02UserNotFound)
                 return NotFound(err);
             else
                 return Conflict(err); // Not in setup phase //TODO: change this so it calls a concede?
@@ -107,19 +104,19 @@ namespace Ludo.WebAPI.Controllers
         // -------------------------------------------------------------------
 
         // operationId: ludoGetPlayerReady
-        // 200 response: Done
-        // 400 response: Done
-        // 404 response: Done
-        // 409 response: Done
+        [ProducesResponseType(200, Type = typeof(PlayerReady))]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404, Type = typeof(Error))]
+        [ProducesResponseType(409)]
         [HttpGet(ROUTE_slotStr)] public ActionResult<PlayerReady> Get (
             [FromRoute]string gameId, [FromRoute]string slotStr)
         {
             if (!TryParseSlot(slotStr, out int slot))
                 return BadRequest();
             var err = getPlayerReady.TryGetPlayerReady(gameId, slot, out PlayerReady playerReady);
-            if (err == ErrorCodes.E00NoError)
+            if (err == Error.Codes.E00NoError)
                 return playerReady;
-            if (err == ErrorCodes.E01GameNotFound || err == ErrorCodes.E10InvalidSlotIndex)
+            if (err == Error.Codes.E01GameNotFound || err == Error.Codes.E10InvalidSlotIndex)
                 return NotFound(err);
             return Conflict();
         }
@@ -131,9 +128,9 @@ namespace Ludo.WebAPI.Controllers
             if (!TryParseSlot(slotStr, out int slot))
                 return BadRequest();
             var err = slotUser.TryClaimSlot(gameId, slot, userId);
-            if (err == ErrorCodes.E00NoError)
+            if (err == Error.Codes.E00NoError)
                 return NoContent();
-            if (err == ErrorCodes.E01GameNotFound || err == ErrorCodes.E02UserNotFound || err == ErrorCodes.E10InvalidSlotIndex)
+            if (err == Error.Codes.E01GameNotFound || err == Error.Codes.E02UserNotFound || err == Error.Codes.E10InvalidSlotIndex)
                 return NotFound(err);
             return Conflict(err);
         }
@@ -141,17 +138,17 @@ namespace Ludo.WebAPI.Controllers
         // operationId: ludoSetSlotReady
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
-        [ProducesResponseType(404, Type = typeof(ErrorCode))]
-        [ProducesResponseType(409, Type = typeof(ErrorCode))]
+        [ProducesResponseType(404, Type = typeof(Error))]
+        [ProducesResponseType(409, Type = typeof(Error))]
         [HttpPut(ROUTE_slotStr)] public IActionResult Put (
             [FromRoute]string gameId, [FromRoute]string slotStr, [FromBody]PlayerReady playerReady)
         {
             if (!TryParseSlot(slotStr, out int slot))
                 return BadRequest();
             var err = slotUser.TrySetSlotReady(gameId, slot, playerReady);
-            if (err == ErrorCodes.E00NoError)
+            if (err == Error.Codes.E00NoError)
                 return NoContent();
-            if (err == ErrorCodes.E01GameNotFound || err == ErrorCodes.E02UserNotFound || err == ErrorCodes.E10InvalidSlotIndex)
+            if (err == Error.Codes.E01GameNotFound || err == Error.Codes.E02UserNotFound || err == Error.Codes.E10InvalidSlotIndex)
                 return NotFound(err);
             return Conflict(err);
         }

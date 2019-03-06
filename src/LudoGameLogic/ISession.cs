@@ -21,11 +21,15 @@ namespace Ludo.GameLogic
         // Calling MovePiece and PassTurn is only valid while this is true.
         bool IsAcceptingInput { get; }
 
-        // Has the game started? (need to call Start method?)
+        // Has the game started? (Need to call Start method?)
         bool HasStarted { get; }
+        // Starts the game, or returns false.
+        // GUARANTEE: Returns true only once, even if called from multiple threads.
+        // WARNING: It is not guaranteed to mutate internal state atomically; you still need a lock.
         bool Start();
 
         // The current turn number (i.e. a counter for how many times the die has been rolled).
+        // When creating a new game this is zero until the game has been started.
         int TurnCounter { get; }
         // (Loading a game also loads the old turn counter.)
         bool IsLoadedFromSavegame { get; }
@@ -69,5 +73,8 @@ namespace Ludo.GameLogic
 
         // Returns the current gamestate.
         LudoSave GetSave();
+
+        // Returns the current boardstate.
+        int[][] CopyBoardState();
     }
 }

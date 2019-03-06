@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Ludo.GameLogic.Extensions;
+using System;
 using System.Linq;
+using System.Threading;
 
 namespace Ludo.GameLogic
 {
@@ -46,11 +48,13 @@ namespace Ludo.GameLogic
         // returns false if already started
         public bool Start()
         {
-            if (HasStarted)
+            if (Interlocked.CompareExchange(ref _winner, -1, NOT_STARTED) != NOT_STARTED)
                 return false;
-            _winner = -1;
             if (!IsLoadedFromSavegame)
+            {
                 RollDie();
+                TurnCounter = 1;
+            }
             ComputePieceInfo();
             InvokeInitialEvents();
             return true;
@@ -73,7 +77,7 @@ namespace Ludo.GameLogic
         public bool IsLoadedFromSavegame { get; }
         public bool HasStarted => _winner != NOT_STARTED;
         public bool IsAcceptingInput { get; private set; }
-        public int TurnCounter { get; private set; } = -1;
+        public int TurnCounter { get; private set; }
         public int CurrentPlayer { get; private set; } = -1;
         public int CurrentDieRoll { get; private set; } = -1;
         public int InBaseCount { get; private set; }
@@ -143,6 +147,9 @@ namespace Ludo.GameLogic
 
         public bool IsLucky
             => CurrentDieRoll == 6; // TODO: implement rule that limits re-rolls to max three moves in a row.
+
+        public int[][] CopyBoardState()
+            => pieceDistances.JaggedCopy();
 
         // </public>  <protected>
 

@@ -1,10 +1,12 @@
-﻿using System;
+﻿using Ludo.API.Models;
+using Ludo.API.Service.Extensions;
+using System;
 using System.Linq;
 using System.Threading;
 
-namespace Ludo.GameService
+namespace Ludo.API.Service
 {
-    public partial class SetupPhase : IGamePhase//, ISharedGP
+    public partial class SetupPhase : IGamePhase
     {
         public static readonly int MaxUsers = 8;
 
@@ -29,16 +31,16 @@ namespace Ludo.GameService
                 old = data;
                 if (old.IsFinalLocked)
                     // final locked: game is being transitioned to the next phase.
-                    return ErrorCodes.E03NotInSetupPhase;
+                    return Error.Codes.E03NotInSetupPhase;
                 if (old.IsEmpty)
                     // game is in the process of being removed, hence "not found".
-                    return ErrorCodes.E01GameNotFound;
+                    return Error.Codes.E01GameNotFound;
                 @new = old.TryAddSlot();
                 if (@new == null)
-                    return ErrorCodes.E13MaxSlotsReached;
+                    return Error.Codes.E13MaxSlotsReached;
             }
             while (Interlocked.CompareExchange(ref data, @new, old) != old);
-            return ErrorCodes.E00NoError;
+            return Error.Codes.E00NoError;
         }
 
         // moves a user from their slot to Others
@@ -52,21 +54,21 @@ namespace Ludo.GameService
                 old = data;
                 if (old.IsFinalLocked)
                     // final locked: game is being transitioned to the next phase.
-                    return ErrorCodes.E03NotInSetupPhase;
+                    return Error.Codes.E03NotInSetupPhase;
                 @new = old.TryMoveFromSlotToOthers(userId);
                 if (@new == null)
                 {
                     if (old.TryFindOther(userId, out _))
                         // user already in Others
-                        return ErrorCodes.E00NoError;
+                        return Error.Codes.E00NoError;
                     if (old.IsEmpty)
                         // game is in the process of being removed, hence "not found".
-                        return ErrorCodes.E01GameNotFound;
-                    return ErrorCodes.E11UserNotInLobby;
+                        return Error.Codes.E01GameNotFound;
+                    return Error.Codes.E11UserNotInLobby;
                 }
             }
             while (Interlocked.CompareExchange(ref data, @new, old) != old);
-            return ErrorCodes.E00NoError;
+            return Error.Codes.E00NoError;
         }
 
         // WARNING: does NOT check that user exists!
@@ -78,29 +80,29 @@ namespace Ludo.GameService
                 old = data;
                 if (old.IsFinalLocked)
                     // final locked: game is being transitioned to the next phase.
-                    return ErrorCodes.E03NotInSetupPhase;
+                    return Error.Codes.E03NotInSetupPhase;
                 if (old.IsEmpty)
                     // game is in the process of being removed, hence "not found".
-                    return ErrorCodes.E01GameNotFound;
+                    return Error.Codes.E01GameNotFound;
                 if (unchecked((uint)slot >= (uint)old.SlotCount))
-                    return ErrorCodes.E10InvalidSlotIndex;
+                    return Error.Codes.E10InvalidSlotIndex;
                 string occupant = old[slot].UserId;
                 if (occupant != null && (allowEvict == null || !allowEvict(occupant)))
-                    return ErrorCodes.E09CannotEvictSlotOccupant;
+                    return Error.Codes.E09CannotEvictSlotOccupant;
                 @new = old.TryMoveToSlot(slot, userId, true);
                 if (@new == old) // no change
-                    return ErrorCodes.E00NoError;
+                    return Error.Codes.E00NoError;
                 if (@new == null)
                 {
                     if (old.IsEmpty)
                         // game is in the process of being removed, hence "not found".
-                        return ErrorCodes.E01GameNotFound;
+                        return Error.Codes.E01GameNotFound;
                     else
-                        return ErrorCodes.E11UserNotInLobby;
+                        return Error.Codes.E11UserNotInLobby;
                 }
             }
             while (Interlocked.CompareExchange(ref data, @new, old) != old);
-            return ErrorCodes.E00NoError;
+            return Error.Codes.E00NoError;
         }
         
         // WARNING: does NOT check that the user exists!
@@ -112,23 +114,23 @@ namespace Ludo.GameService
                 old = data;
                 if (old.IsFinalLocked)
                     // final locked: game is being transitioned to the next phase.
-                    return ErrorCodes.E03NotInSetupPhase;
+                    return Error.Codes.E03NotInSetupPhase;
                 if (unchecked((uint)slot >= (uint)old.SlotCount))
-                    return ErrorCodes.E10InvalidSlotIndex;
+                    return Error.Codes.E10InvalidSlotIndex;
                 @new = old.TrySetSlotReady(slot, ur);
                 if (@new == old) // no change
-                    return ErrorCodes.E00NoError;
+                    return Error.Codes.E00NoError;
                 if (@new == null)
                 {
                     if (old.IsEmpty)
                         // game is in the process of being removed, hence "not found".
-                        return ErrorCodes.E01GameNotFound;
+                        return Error.Codes.E01GameNotFound;
                     else
-                        return ErrorCodes.E12UserIdMismatch;
+                        return Error.Codes.E12UserIdMismatch;
                 }
             }
             while (Interlocked.CompareExchange(ref data, @new, old) != old);
-            return ErrorCodes.E00NoError;
+            return Error.Codes.E00NoError;
         }
 
         // also returns true if the user was already present
@@ -142,18 +144,18 @@ namespace Ludo.GameService
                 old = data;
                 if (old.IsFinalLocked)
                     // final locked: game is being transitioned to the next phase.
-                    return ErrorCodes.E03NotInSetupPhase;
+                    return Error.Codes.E03NotInSetupPhase;
                 if (old.IsEmpty)
                     // game is in the process of being removed, hence "not found".
-                    return ErrorCodes.E01GameNotFound;
+                    return Error.Codes.E01GameNotFound;
                 @new = old.TryAddUser(userId, out slot);
                 if (@new == null)
-                    return ErrorCodes.E04LobbyIsFull;
+                    return Error.Codes.E04LobbyIsFull;
                 if (@new == old)
-                    return ErrorCodes.E00NoError; // no change
+                    return Error.Codes.E00NoError; // no change
             }
             while (Interlocked.CompareExchange(ref data, @new, old) != old);
-            return ErrorCodes.E00NoError;
+            return Error.Codes.E00NoError;
         }
 
         // WARNING: does NOT check that the user exists!
@@ -166,17 +168,17 @@ namespace Ludo.GameService
                 old = data;
                 if (old.IsFinalLocked)
                     // final locked: game is being transitioned to the next phase.
-                    return ErrorCodes.E03NotInSetupPhase;
+                    return Error.Codes.E03NotInSetupPhase;
                 if (old.IsEmpty)
                     // game is in the process of being removed, hence "not found".
-                    return ErrorCodes.E01GameNotFound;
+                    return Error.Codes.E01GameNotFound;
                 @new = old.LeaveLobby(userId); // <- returns null if no modification took place.
                 if (@new == null)
-                    return ErrorCodes.E00NoError;
+                    return Error.Codes.E00NoError;
             }
             while (Interlocked.CompareExchange(ref data, @new, old) != old);
             wasLastUser = @new.IsEmpty;
-            return ErrorCodes.E00NoError;
+            return Error.Codes.E00NoError;
             //do @new = (old = data)?.LeaveLobby(userId);
             //while (@new != null && Interlocked.CompareExchange(ref data, @new, old) != old);
             //isEmpty = @new?.IsEmpty == true;
@@ -191,17 +193,17 @@ namespace Ludo.GameService
                 old = data;
                 if (old.IsFinalLocked)
                     // final locked: game is being transitioned to the next phase.
-                    return ErrorCodes.E03NotInSetupPhase;
+                    return Error.Codes.E03NotInSetupPhase;
                 @new = old.TryFinalLock();
                 if (@new == null)
-                    return ErrorCodes.E14NotAllUsersReady;
+                    return Error.Codes.E14NotAllUsersReady;
             }
             while (Interlocked.CompareExchange(ref data, @new, old) != old);
-            return ErrorCodes.E00NoError;
+            return Error.Codes.E00NoError;
         }
 
         #region --- IGameStateSession ---
-        GameLifecycle IGamePhase.Phase => data.IsFinalLocked ? GameLifecycle.starting : GameLifecycle.setup;
+        GamePhase IGamePhase.Phase => data.IsFinalLocked ? GamePhase.starting : GamePhase.setup;
 
         SetupPhase IGamePhase.Setup => this;
 
@@ -210,6 +212,8 @@ namespace Ludo.GameService
         FinishedPhase IGamePhase.Finished => null;
 
         ISlotArray IGamePhase.Slots => data;
+
+        string IGamePhase.Winner => null;
         #endregion
     }
 }

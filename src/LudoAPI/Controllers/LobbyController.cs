@@ -1,24 +1,24 @@
-﻿using Ludo.GameService;
-using Ludo.WebAPI.Models;
+﻿using Ludo.API.Models;
+using Ludo.API.Service.Components;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Ludo.WebAPI.Controllers
+namespace Ludo.API.Web.Controllers
 {
     [Route("ludo/lobby")]
     [ApiController]
     public partial class LobbyController : LudoControllerBase
     {
-        private readonly Components.IListLobbies listLobby;
-        private readonly Components.ICreateLobby createLobby;
-        private readonly Components.IIsKnown isKnown;
+        private readonly IListLobbies listLobby;
+        private readonly ICreateLobby createLobby;
+        private readonly IIsKnown isKnown;
 
         public LobbyController(
-            Components.IListLobbies listLobby,
-            Components.ICreateLobby createLobby,
-            Components.IIsKnown isKnown)
+            IListLobbies listLobby,
+            ICreateLobby createLobby,
+            IIsKnown isKnown)
         {
             this.listLobby = listLobby;
             this.createLobby = createLobby;
@@ -26,9 +26,9 @@ namespace Ludo.WebAPI.Controllers
         }
 
         // operationId: ludoListLobbies
-        // 200 response: Done
-        // 400 response: Done
-        // 404 response: Done
+        [ProducesResponseType(200, Type = typeof(LobbyListEntry))]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
         [HttpGet] public ActionResult<IEnumerable<LobbyListEntry>> Get (
             [FromQuery(Name = "show")]string showStr, [FromQuery]string[] userId)
         {
@@ -54,13 +54,28 @@ namespace Ludo.WebAPI.Controllers
                 return BadRequest();
             // TODO/FIXME: reservations
             var err = createLobby.TryCreateLobby(lobby.UserId, lobby.Slots, lobby.Access, out string gameId);
-            if (err == ErrorCodes.E00NoError)
+            if (err == Error.Codes.E00NoError)
                 return Created(gameId, null);
-            if (err == ErrorCodes.E02UserNotFound)
-                return NotFound();
-            if (err == ErrorCodes.E05InvalidSlotCount)
-                return UnprocessableEntity();
+            if (err == Error.Codes.E02UserNotFound)
+                return NotFound(err);
+            if (err == Error.Codes.E05InvalidSlotCount)
+                return UnprocessableEntity(err);
             return Status(500); // (should never happen)
+        }
+
+        // operationId: ludoCreateLobby
+        [ProducesResponseType(201)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(422)]
+        [HttpPost]
+        public IActionResult Post([FromBody]LoadLobby lobby)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest();
+
+            // TODO/FIXME: loading a saved game
+            throw new NotImplementedException();
         }
     }
 }

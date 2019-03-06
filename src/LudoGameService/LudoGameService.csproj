@@ -2,12 +2,13 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.2</TargetFramework>
-    <RootNamespace>Ludo.GameService</RootNamespace>
+    <RootNamespace>Ludo.API.Service</RootNamespace>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\LudoGameLogic\LudoGameLogic.csproj" />
+    <ProjectReference Include="..\LudoModels\LudoApiModels.csproj" />
   </ItemGroup>
 
 </Project>

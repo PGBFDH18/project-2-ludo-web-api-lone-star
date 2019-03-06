@@ -1,22 +1,24 @@
-﻿namespace Ludo.GameService
+﻿using Ludo.API.Models;
+
+namespace Ludo.API.Service
 {
-    public class FinishedPhase : IGamePhase//, ISharedGP
+    public class FinishedPhase : IGamePhase
     {
-        private readonly ISlotArray players;
+        private readonly ISlotArray slots;
 
         public FinishedPhase(byte winner, ISlotArray players)
         {
             WinnerSlot = winner;
-            this.players = new SlotArray(players);
+            this.slots = new SlotArray(players);
         }
 
         // index of the winning slot.
         public byte WinnerSlot { get; }
 
-        public string WinnerId => players[WinnerSlot];
+        public string Winner => slots[WinnerSlot];
 
         #region --- IGameStateSession ---
-        GameLifecycle IGamePhase.Phase => GameLifecycle.finished;
+        GamePhase IGamePhase.Phase => GamePhase.finished;
 
         SetupPhase IGamePhase.Setup => null;
 
@@ -24,9 +26,7 @@
 
         FinishedPhase IGamePhase.Finished => this;
 
-        //ISharedGP IGamePhase.Shared => this;
-
-        ISlotArray IGamePhase.Slots => players;
+        ISlotArray IGamePhase.Slots => slots;
         #endregion
     }
 }

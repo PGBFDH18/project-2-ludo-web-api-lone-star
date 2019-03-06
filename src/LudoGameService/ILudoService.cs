@@ -1,4 +1,6 @@
-﻿namespace Ludo.GameService
+﻿using Ludo.API.Models;
+
+namespace Ludo.API.Service
 {
     public interface ILudoService
     {

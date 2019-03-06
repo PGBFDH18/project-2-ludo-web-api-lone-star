@@ -1,4 +1,4 @@
-﻿namespace Ludo.GameService
+﻿namespace Ludo.API.Service
 {
     // TODO: add more data...
     public class UserData

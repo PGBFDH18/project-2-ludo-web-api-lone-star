@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.2</TargetFramework>
-    <RootNamespace>Ludo.WebAPI</RootNamespace>
+    <RootNamespace>Ludo.API.Web</RootNamespace>
     <AssemblyName>LudoWebAPI</AssemblyName>
     <LangVersion>7.2</LangVersion>
   </PropertyGroup>
@@ -20,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\LudoGameLogic\LudoGameLogic.csproj" />
     <ProjectReference Include="..\LudoGameService\LudoGameService.csproj" />
+    <ProjectReference Include="..\LudoModels\LudoApiModels.csproj" />
   </ItemGroup>
 
 </Project>

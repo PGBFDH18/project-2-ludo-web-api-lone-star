@@ -1,21 +1,22 @@
-﻿using Ludo.WebAPI.Models;
+﻿using Ludo.API.Models;
+using Ludo.API.Service.Components;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Ludo.WebAPI.Controllers
+namespace Ludo.API.Web.Controllers
 {
     [Route("ludo/board")]
     [ApiController]
     public class BoardController : LudoControllerBase
     {
-        private readonly Components.IBoardInfo boardInfo;
+        private readonly IBoardInfo boardInfo;
 
-        public BoardController(Components.IBoardInfo boardInfo) {
+        public BoardController(IBoardInfo boardInfo) {
             this.boardInfo = boardInfo;
         }
 
         // operationId: ludoGetBoardInfo
-        // 200 response: Done
-        // 400 response: Done
+        [ProducesResponseType(200, Type = typeof(BoardInfo))]
+        [ProducesResponseType(400)]
         [HttpGet] public ActionResult<BoardInfo> Get ([FromQuery]int length)
         {
             if (boardInfo.TryGetBoardInfo(length, out BoardInfo bi))

@@ -1,7 +1,7 @@
-﻿using Ludo.GameService;
+﻿using Ludo.API.Service;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Ludo.WebAPI.Controllers
+namespace Ludo.API.Web.Controllers
 {
     [Route("ludo")]
     [ApiController]
@@ -10,9 +10,9 @@ namespace Ludo.WebAPI.Controllers
         public LudoController(ILudoService ludoService)
         { }
 
-        [HttpGet]
-        public void Get()
+        [HttpGet] public void Get()
         {
+            // TODO: useful response...
             Response.StatusCode = 418; // I'm a teapot!
         }
     }
