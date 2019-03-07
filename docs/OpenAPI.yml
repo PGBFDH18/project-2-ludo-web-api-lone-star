@@ -102,7 +102,7 @@ paths:
           description: A UserInfo object with information about the user.
           content:
             application/json:
-              items:
+              schema:
                 $ref: '#/components/schemas/UserInfo'
         '404':
           description: No such user exists.
@@ -601,11 +601,17 @@ paths:
         '400':
           description: Bad slot.
         '404':
-          description: No such game exists.
+          description: No such game / slot exists.
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/Error'
         '409':
-          description: >
-            Rules do not allow passing the turn, or not the active player
-            (e.g. game has ended / not started yet).
+          description: Cannot pass the turn (e.g. the rules do not allow it).
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/Error'
       #TODO: require game auth token + 401 & 403 response
     
     delete:
@@ -736,11 +742,11 @@ paths:
 
 components:
   parameters:
-    playerPath:
-      name: player
+    userIdPath:
+      name: userId
       in: path
       required: true
-      description: A player id.
+      description: A user id.
       schema:
         type: string
     gameIdPath:
@@ -770,10 +776,11 @@ components:
         format: int32
         minimum: 0
         maximum: 3
+  
   schemas:
     Error:
       type: object
-      parameters:
+      properties:
         code:
           description: An error code.
           type: integer
@@ -831,7 +838,7 @@ components:
         - save
       properties:
         save:
-          $ref:'#/components/schemas/GameSave'
+          $ref: '#/components/schemas/GameSave'
         access:
           $ref: '#/components/schemas/LobbyAccess'
         strict:
