@@ -14,10 +14,15 @@ namespace Ludo.API.Web.Controllers
     {
         private readonly IGetCurrent getCurrent;
         private readonly IGetTurnInfo getTurnInfo;
+        private readonly IPassTurn passTurn;
 
-        public GameGameController(IGetCurrent getCurrent, IGetTurnInfo getTurnInfo) {
+        public GameGameController(
+            IGetCurrent getCurrent,
+            IGetTurnInfo getTurnInfo,
+            IPassTurn passTurn) {
             this.getCurrent = getCurrent;
             this.getTurnInfo = getTurnInfo;
+            this.passTurn = passTurn;
         }
 
         // operationId: ludoGetCurrent
@@ -54,7 +59,24 @@ namespace Ludo.API.Web.Controllers
             return Conflict(err);
         }
 
-        //TODO:  post
+        // operationId: ludoPassTurn
+        [ProducesResponseType(204)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404, Type = typeof(Error))]
+        [ProducesResponseType(409, Type = typeof(Error))]
+        [HttpPost(ROUTE_slotStr)] public IActionResult Post (
+            [FromRoute]string gameId, [FromRoute]string slotStr)
+        {
+            if (!TryParseSlot(slotStr, out int slot))
+                return BadRequest();
+            var err = passTurn.PassTurn(gameId, slot);
+            if (err == Error.Codes.E00NoError)
+                return NoContent();
+            if (err == Error.Codes.E01GameNotFound || err == Error.Codes.E10InvalidSlotIndex)
+                return NotFound(err);
+            return Conflict(err);
+        }
+
         //TODO:  delete
     }
 }

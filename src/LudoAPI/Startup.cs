@@ -44,8 +44,9 @@ namespace Ludo.API.Web
             services.AddSingleton<IListGames, CListGames>();
             services.AddSingleton<IListLobbies, CListLobbies>();
             services.AddSingleton<IListUsers, CListUsers>();
+            services.AddSingleton<IPassTurn, CPassTurn>();
             services.AddSingleton<ISlotUser, CSlotUser>();
-            services.AddSingleton<IStartGame, CStartGameMock>(); // <--- FIXME! TODO
+            services.AddSingleton<IStartGame, CStartGame>();
             services.AddSingleton<IUserNameAcceptable, CUserNameAcceptable>();
         }
 

@@ -1,4 +1,6 @@
-﻿namespace Ludo.API.Service.Extensions
+﻿using System;
+
+namespace Ludo.API.Service.Extensions
 {
     public static class TExtension
     {
@@ -18,5 +20,13 @@
         //
         public static bool IsNull<T>(this T tIn, out T tLocal)
             => (tLocal = tIn) == null;
+
+        // Runs the action if the condition evaluates to true, and returns the condition value.
+        public static bool OnTrue(this bool condition, Action action)
+        {
+            if (condition)
+                action();
+            return condition;
+        }
     }
 }

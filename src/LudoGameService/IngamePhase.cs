@@ -69,6 +69,13 @@ namespace Ludo.API.Service
                 return new BoardState(session.CopyBoardState());
         }
 
+        public bool TryPassTrun(int slot)
+        {
+            lock (sessionLocker)
+                return (session.CurrentPlayer == slot && session.CanPass)
+                    .OnTrue(session.PassTurn);
+        }
+
         #region --- IGameStateSession ---
         GamePhase IGamePhase.Phase => GamePhase.ingame;
 
