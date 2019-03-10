@@ -122,7 +122,7 @@ namespace Ludo.API.Web.Controllers
         }
 
         // operationId: ludoSetSlotPlayer
-        [HttpGet(ROUTE_slotStr)] public IActionResult Post (
+        [HttpPut(ROUTE_slotStr)] public IActionResult Put (
             [FromRoute]string gameId, [FromRoute]string slotStr, [FromHeader]string userId)
         {
             if (!TryParseSlot(slotStr, out int slot))
@@ -140,7 +140,7 @@ namespace Ludo.API.Web.Controllers
         [ProducesResponseType(400)]
         [ProducesResponseType(404, Type = typeof(Error))]
         [ProducesResponseType(409, Type = typeof(Error))]
-        [HttpPut(ROUTE_slotStr)] public IActionResult Put (
+        [HttpPatch(ROUTE_slotStr)] public IActionResult Patch (
             [FromRoute]string gameId, [FromRoute]string slotStr, [FromBody]PlayerReady playerReady)
         {
             if (!TryParseSlot(slotStr, out int slot))
