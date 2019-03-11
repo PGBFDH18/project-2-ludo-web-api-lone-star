@@ -30,6 +30,7 @@ namespace Ludo.API.Web
             services.AddSingleton<Service.ILudoService>(Service.Factory.Create());
             services.AddSingleton<IBoardInfo, CBoardInfo>();
             services.AddSingleton<IBoardState, CBoardState>();
+            services.AddSingleton<IConcede, CConcede>();
             services.AddSingleton<ICreateLobby, CCreateLobby>();
             services.AddSingleton<ICreateUser, CCreateUser>();
             services.AddSingleton<IFindUser, CFindUser>();

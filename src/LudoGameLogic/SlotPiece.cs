@@ -2,18 +2,18 @@
 
 namespace Ludo.GameLogic
 {
-    public struct PlayerPiece
+    public struct SlotPiece
     {
         // who does the colliding piece belong to?
-        public int Player { get; }
+        public int Slot { get; }
 
         // which of the target players pieces is it?
         public int Piece { get; }
 
         // ctor
-        public PlayerPiece(int player, int piece)
+        public SlotPiece(int slot, int piece)
         {
-            Player = player;
+            Slot = slot;
             Piece = piece;
         }
     }

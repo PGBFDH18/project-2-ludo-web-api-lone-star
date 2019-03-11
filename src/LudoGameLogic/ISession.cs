@@ -23,6 +23,13 @@ namespace Ludo.GameLogic
 
         // Has the game started? (Need to call Start method?)
         bool HasStarted { get; }
+        // Checks if a slot index is valid for the game board. (See BoardInfo.SlotCount)
+        bool IsBoardSlot(int slot);
+        // Tries to add a player to the slot.
+        // Fails if the game has already started, or the slot is occupied / out of range.
+        bool TryAddPlayer(int slot);
+        // Checks if a slot is occupied.
+        bool IsSlotOccupied(int slot);
         // Starts the game, or returns false.
         // GUARANTEE: Returns true only once, even if called from multiple threads.
         // WARNING: It is not guaranteed to mutate internal state atomically; you still need a lock.
@@ -33,9 +40,9 @@ namespace Ludo.GameLogic
         int TurnCounter { get; }
         // (Loading a game also loads the old turn counter.)
         bool IsLoadedFromSavegame { get; }
-
-        // The current player.
-        int CurrentPlayer { get; }
+        
+        // The slot index of the current player.
+        int CurrentSlot { get; }
         // The current die roll.
         int CurrentDieRoll { get; }
 
@@ -52,7 +59,7 @@ namespace Ludo.GameLogic
 
         // Static info about the board (size etc.)
         BoardInfo BoardInfo { get; }
-        // Number of players.
+        // Number of players. (Invariant: PlayerCount <= BoardInfo.SlotCount)
         int PlayerCount { get; }
         // Number of pieces per player.
         int PieceCount { get; }
@@ -69,7 +76,7 @@ namespace Ludo.GameLogic
         // Get the board position of any piece.
         int GetPiecePosition(int player, int piece);
         // Get the piece at a board position [1 - BoardInfo.Length] (or NULL if position is empty).
-        PlayerPiece? LookAtBoard(int position);
+        SlotPiece? LookAtBoard(int position);
 
         // Returns the current gamestate.
         LudoSave GetSave();

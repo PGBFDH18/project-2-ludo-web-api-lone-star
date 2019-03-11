@@ -32,10 +32,9 @@ paths:
       summary: Server state / info.
       description: TODO
       responses:
-        '204':
-          description: Server is alive! #TODO
         '418':
           description: Coffe? U no can has!
+          #TODO: send back some server statistics instead
 
   /ludo/user:
     get:
@@ -61,7 +60,7 @@ paths:
         '404':
           description: No matching user(s) exist. (For searches only.)
     
-    post:
+    post: # creating a new resource
       operationId: ludoCreateUser
       tags:
         - users
@@ -108,7 +107,7 @@ paths:
           description: No such user exists.
       #TODO: add more info / statistics here? or add sub-paths with more info?
     
-    #put: ...
+    #put/patch: ...
     #TODO: add ability to make user changes - requires some form of auth!
     
     #delete: ...
@@ -157,7 +156,7 @@ paths:
         '404':
           description: One or more of the specified players does not exists.
 
-    post:
+    post: # creating a resource
       operationId: ludoCreateLobby
       tags:
         - users
@@ -213,7 +212,7 @@ paths:
         '404':
           description: No such game exists.
     
-    patch:
+    patch: # we are amending a user (player/spectator) to the lobby resource
       operationId: ludoJoinLobby
       tags:
         - users
@@ -256,7 +255,7 @@ paths:
                 $ref: '#/components/schemas/Error'
           #TODO: supply exact reason in body (Error object)
     
-    post:
+    post: # creates (in-)game resource
       operationId: ludoStartGame
       tags: 
         - players
@@ -279,7 +278,7 @@ paths:
                 $ref: '#/components/schemas/Error'
       #TODO: require game auth token + 401 & 403 response
     
-    delete:
+    delete: # should be idempotent (does the described behaviour qualify as idempotent..?)
       operationId: ludoLeaveLobby
       tags:
         - players
@@ -342,7 +341,7 @@ paths:
           description: Game not in setup stage (i.e. already in progress / ended).
       #TODO: require game auth token + 401 & 403 response
 
-    post:
+    put: # we are replacing the content of the slot resource.
       operationId: ludoSetSlotPlayer
       tags:
         - players
@@ -378,7 +377,7 @@ paths:
                 $ref: '#/components/schemas/Error'
       #TODO: require game auth token + 401 & 403 response
     
-    put:
+    patch: # we are modifying the ready property of the slot resource.
       operationId: ludoSetSlotReady
       tags:
         - players
@@ -461,7 +460,7 @@ paths:
         '409':
           description: Game is not in the ingame phase.
     
-    put:
+    put: # we are replacing the games board-state resource.
       tags:
         - players
       summary: Set the BoardState.
@@ -478,7 +477,7 @@ paths:
         '204':
           description: OK
         '400':
-          description: Bad distances parameter.
+          description: Bad input parameter.
         '404':
           description: No such game exists.
         '409':
@@ -549,8 +548,44 @@ paths:
           description: No such game exists.
         '409':
           description: Game is not in the ingame phase.
+    
+    delete: # shoild be idempotent. Is it..?
+      operationId: ludoConcede
+      tags:
+        - players
+      summary: Concede.
+      description: |
+        Irrevocably hands over control of your pieces to a bot.
+        If only one human player remains after a concede, that player is declared the winner and the game ends.
+        (wip)
+      parameters:
+        - name: UserId
+          in: header
+          required: true
+          description: |
+            The userId of the conceding player.
+          schema:
+            type: string
+      responses:
+        '204':
+          description: >
+            OK.
+            This is also sent if the user isn't part of this lobby,
+            or has already conceeded, or the game has already ended.
+        '400':
+          description: Bad input parameter.
+        '404':
+          description: No such game / user exists.
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Not ingame phase.
+      #TODO: require game auth token + 401 & 403 response
   
   /ludo/game/{gameId}/{slot}:
+    #TODO: make turn counter part of the path.
     parameters:
       - $ref: '#/components/parameters/gameIdPath'
       - $ref: '#/components/parameters/slotPath'
@@ -586,6 +621,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
     
+    # TODO: if we had turn as part of the path we could create a "passed" resource or patch the turn status to "passed".
+    # ...it would also simplify caching a lot!
     post:
       operationId: ludoPassTurn
       tags:
@@ -614,41 +651,22 @@ paths:
                 $ref: '#/components/schemas/Error'
       #TODO: require game auth token + 401 & 403 response
     
-    delete:
-      operationId: ludoConcede
-      tags:
-        - players
-      summary: Concede.
-      description: |
-        Irrevocably hands over control of your pieces to a bot.
-        If only one human player remains after a concede, that player is declared the winner and the game ends.
-        (wip)
-      responses:
-        '204':
-          description: OK (Also sent if the player has already conceded and / or the game has ended.
-        '400':
-          description: Bad slot.
-        '404':
-          description: No such game exists.
-        '409':
-          description: This player has already conceded and / or the game has ended.
-      #TODO: require game auth token + 401 & 403 response
-    
   /ludo/game/{gameId}/{slot}/{pieceIndex}:
     parameters:
       - $ref: '#/components/parameters/gameIdPath'
       - $ref: '#/components/parameters/slotPath'
       - $ref: '#/components/parameters/pieceIndexPath'
     # get: PieceInfo!
-    # post: MovePiece! <---- put or patch or post?
+    # patch: MovePiece! <---- patch or post?
+    
     get:
+      operationId: ludoGetPieceInfo
       tags:
         - users
       summary: Get a PieceInfo object.
       description: |
         A PieceInfo object describing state, movability, and collision / blocking for the piece.
         Requires that the slot index corresponds to the current player.
-      operationId: ludoGetPieceInfo
       responses:
         '200':
           description: A PieceInfo object.
@@ -664,14 +682,15 @@ paths:
           description: |
             PieceInfo can only be acquired / calculated for the active player.
             (Perhaps game has ended or not started yet.)
-    post:
+    
+    patch:
+      operationId: ludoMovePiece
       tags: 
         - players
       summary: Moves the piece.
       description: |
         Moves the piece according to the current die roll.
         Requires that the slot index corresponds to the current player and that pieceIndex is a movable piece.
-      operationId: ludoMovePiece
       responses:
         '204':
           description: OK
@@ -686,59 +705,59 @@ paths:
       #TODO: require game auth token + 401 & 403 response
   
   # This path is not required to play, it just allows anyone to query moves for an arbitrary gamestate.
-  /ludo/calculate:
-    get:
-      tags:
-        - users
-      summary: Calculates possible moves for a player at a given gamestate.
-      description: >
-        By passing in a gamestate, you can get a description of how a players pieces can move on the board - as a PieceInfo array.
-      operationId: ludoCalculateMoves
-      parameters:
-        - name: slot
-          in: query
-          required: true
-          description: The player (slot index) to calculate moves for.
-          schema:
-            type: integer
-            format: int32
-            minimum: 0
-            maximum: 3
-        - name: roll
-          in: query
-          required: true
-          description: The die roll to calculate moves for.
-          schema:
-            type: integer
-            format: int32
-            minimum: 1
-            maximum: 6
-        - name: distances
-          in: query
-          required: true
-          description: |
-            The state of the board in the form of an array of player relative board indexes ("distances"), starting with all pieces (0-3) for player 0, then all pieces for player 1, etc.
-            (Length of the array is thus PlayerCount * PieceCount.)
-          schema:
-            type: array
-            items:
-              type: integer
-              format: int32
-              minimum: 0
-              maximum: 90
-      responses:
-        '200':
-          description: |
-            Array of PieceInfo objects describing distance etc. for all of the current players pieces (0-3).
-            All of the current players possible moves (or lack there of) can be inferred from this array.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/PieceInfo'
-        '400':
-          description: bad input parameter
+  # /ludo/calculate:
+  #   get:
+  #     tags:
+  #       - users
+  #     summary: Calculates possible moves for a player at a given gamestate.
+  #     description: >
+  #       By passing in a gamestate, you can get a description of how a players pieces can move on the board - as a PieceInfo array.
+  #     operationId: ludoCalculateMoves
+  #     parameters:
+  #       - name: slot
+  #         in: query
+  #         required: true
+  #         description: The player (slot index) to calculate moves for.
+  #         schema:
+  #           type: integer
+  #           format: int32
+  #           minimum: 0
+  #           maximum: 3
+  #       - name: roll
+  #         in: query
+  #         required: true
+  #         description: The die roll to calculate moves for.
+  #         schema:
+  #           type: integer
+  #           format: int32
+  #           minimum: 1
+  #           maximum: 6
+  #       - name: distances
+  #         in: query
+  #         required: true
+  #         description: |
+  #           The state of the board in the form of an array of player relative board indexes ("distances"), starting with all pieces (0-3) for player 0, then all pieces for player 1, etc.
+  #           (Length of the array is thus PlayerCount * PieceCount.)
+  #         schema:
+  #           type: array
+  #           items:
+  #             type: integer
+  #             format: int32
+  #             minimum: 0
+  #             maximum: 90
+  #     responses:
+  #       '200':
+  #         description: |
+  #           Array of PieceInfo objects describing distance etc. for all of the current players pieces (0-3).
+  #           All of the current players possible moves (or lack there of) can be inferred from this array.
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: array
+  #               items:
+  #                 $ref: '#/components/schemas/PieceInfo'
+  #       '400':
+  #         description: bad input parameter
 
 components:
   parameters:

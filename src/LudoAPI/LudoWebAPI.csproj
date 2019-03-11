@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp2.2</TargetFramework>
     <RootNamespace>Ludo.API.Web</RootNamespace>
-    <AssemblyName>LudoWebAPI</AssemblyName>
+    <AssemblyName>LudoWeb</AssemblyName>
     <LangVersion>7.2</LangVersion>
   </PropertyGroup>
 

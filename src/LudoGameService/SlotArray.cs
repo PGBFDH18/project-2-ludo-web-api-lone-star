@@ -33,6 +33,10 @@ namespace Ludo.API.Service
 
         bool ISlotArray.IsEmpty => slots.All(string.IsNullOrEmpty);
 
+        public bool IsInRange(int index) => unchecked((uint)index < (uint)slots.Length);
+
+        public int IndexOf(string userId) => Array.IndexOf(slots, userId);
+
         public IEnumerator<string> GetEnumerator()
             => slots.AsEnumerable().GetEnumerator();
 

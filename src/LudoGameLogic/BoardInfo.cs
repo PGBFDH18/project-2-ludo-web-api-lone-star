@@ -9,6 +9,7 @@ namespace Ludo.GameLogic
         public const int DEFAULT_LENGTH = 40;
         public static readonly int MinLength = 24;
         public static readonly int MaxLength = 80;
+        private const int SLOT_COUNT = 4;
 
         public static class IsValid
         {
@@ -30,6 +31,9 @@ namespace Ludo.GameLogic
 
         // length of the shared track around the board (excluding the collision-free end-zones leading to the goal).
         public int Length { get; }
+
+        // Number of player slots supported by the ludo board.
+        public int SlotCount => SLOT_COUNT;
 
         // is this instance valid? (Was it initialized with a valid length argument?)
         public bool IsProper

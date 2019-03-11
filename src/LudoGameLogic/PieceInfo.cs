@@ -17,7 +17,7 @@ namespace Ludo.GameLogic
         public bool CanMove => CurrentPosition != MovedPosition;
 
         // if this piece were to move, would it collide with another piece? (otherwise NULL)
-        public PlayerPiece? Collision { get; }
+        public SlotPiece? Collision { get; }
 
         // is this piece in its base?
         public bool IsInBase => CurrentDistance == 0;
@@ -36,7 +36,7 @@ namespace Ludo.GameLogic
         }
 
         // constructor for piece that cannot move because it is blocked.
-        public PieceInfo(int currentDistance, int currentPosition, PlayerPiece collision)
+        public PieceInfo(int currentDistance, int currentPosition, SlotPiece collision)
         {
             CurrentDistance = (byte)currentDistance;
             CurrentPosition = (sbyte)currentPosition;
@@ -54,7 +54,7 @@ namespace Ludo.GameLogic
         }
 
         // constructor for piece that can move AND collides with another piece if it is moved.
-        public PieceInfo(int currentDistance, int currentPosition, int movedPosition, PlayerPiece collision)
+        public PieceInfo(int currentDistance, int currentPosition, int movedPosition, SlotPiece collision)
         {
             CurrentDistance = (byte)currentDistance;
             CurrentPosition = (sbyte)currentPosition;

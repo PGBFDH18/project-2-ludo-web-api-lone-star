@@ -11,8 +11,9 @@ namespace Ludo.GameLogic
     {
         // special constants:
         const int NON_BOARD_POSITION = -1; // base or goal position (distance tells them apart)
-        const int PIECE_COUNT = 4; // pieces per player
         const int NOT_STARTED = -2;
+        const int RANDOM_START = int.MinValue;
+        const int PIECE_COUNT = 4; // pieces per player
 
         // special rules TODO:
         const bool ALLOW_STACKING = false; // 'true' not implemented
@@ -21,29 +22,37 @@ namespace Ludo.GameLogic
         // <ctors>
 
         // ctor (new game)
-        // startingPlayer == -1 means random starting player.
-        internal Session(int playerCount, BoardInfo boardInfo, Rules rules, int startingPlayer = -1)
+        internal Session(BoardInfo boardInfo, Rules rules)
         {
             IsLoadedFromSavegame = false;
-            pieceDistances = new int[playerCount, PIECE_COUNT];
+            pieceDistances = new int[boardInfo.SlotCount][];
             currentPieces = new PieceInfo[PIECE_COUNT];
             BoardInfo = boardInfo;
             Rules = rules;
-            CurrentPlayer = (startingPlayer < 0 ? random.Next() : startingPlayer) % playerCount;
         }
 
         // ctor (load game)
-        internal Session(LudoSave save)
+        internal Session(LudoSave save) // TODO: check that the save is valid?
         {
             IsLoadedFromSavegame = true;
             TurnCounter = save.TurnCounter;
-            pieceDistances = save.pieceDistances;
+            pieceDistances = save.pieceDistances.JaggedCopy();
             currentPieces = new PieceInfo[PIECE_COUNT];
             BoardInfo = new BoardInfo(save.BoardLength);
             Rules = save.Rules;
-            CurrentPlayer = save.CurrentPlayer;
+            CurrentSlot = save.CurrentSlot;
             CurrentDieRoll = save.CurrentDieRoll;
         }
+        
+        public bool IsBoardSlot(int slot)
+            => unchecked((uint)slot < (uint)pieceDistances.Length);
+
+        public bool TryAddPlayer(int slot)
+            => IsBoardSlot(slot)
+            && Interlocked.CompareExchange(ref pieceDistances[slot], new int[PIECE_COUNT], null) == null;
+
+        public bool IsSlotOccupied(int slot)
+            => pieceDistances[slot] != null;
 
         // returns false if already started
         public bool Start()
@@ -53,6 +62,7 @@ namespace Ludo.GameLogic
             if (!IsLoadedFromSavegame)
             {
                 RollDie();
+                CurrentSlot = RandomNonEmptySlot();
                 TurnCounter = 1;
             }
             ComputePieceInfo();
@@ -78,7 +88,7 @@ namespace Ludo.GameLogic
         public bool HasStarted => _winner != NOT_STARTED;
         public bool IsAcceptingInput { get; private set; }
         public int TurnCounter { get; private set; }
-        public int CurrentPlayer { get; private set; } = -1;
+        public int CurrentSlot { get; private set; } = -1;
         public int CurrentDieRoll { get; private set; } = -1;
         public int InBaseCount { get; private set; }
         public int InGoalCount { get; private set; }
@@ -87,7 +97,7 @@ namespace Ludo.GameLogic
         public Rules Rules { get; }
 
         public int PlayerCount
-            => pieceDistances.Length / PIECE_COUNT;
+            => pieceDistances.Count(p => p != null);
 
         public int PieceCount
             => PIECE_COUNT;
@@ -97,14 +107,7 @@ namespace Ludo.GameLogic
 
         public bool CanMove { get; private set; }
         public bool CanPass => !CanMove; // TODO: house-rules
-
-        //public void MoveBasePiece()
-        //{
-        //    if (!currentPieces.FirstIndex(p => p.IsInBase && p.CanMove, out int i))
-        //        throw new LudoRuleException("Rules does not allow the current player to " + "move a piece out of their base.");
-        //    MoveBasePiece(i);
-        //}
-
+        
         public void MovePiece(int piece)
         {
             if (!IsAcceptingInput)
@@ -129,21 +132,22 @@ namespace Ludo.GameLogic
             NextTurn();
         }
 
-        public int GetPiecePosition(int player, int piece)
-            => CalculatePosition(player, piece);
+        public int GetPiecePosition(int slot, int piece)
+            => CalculatePosition(slot, piece);
 
-        public PlayerPiece? LookAtBoard(int position)
+        public SlotPiece? LookAtBoard(int position)
         {
             if (position >= 0 && position < BoardInfo.GoalPosition(3)) // quick range check.
-                for (int player = 0; player < PlayerCount; ++player) // loop over players...
-                    for (int piece = 0; piece < PIECE_COUNT; ++piece) // and their pieces...
-                        if (CalculatePosition(player, piece) == position) // ...find match.
-                            return new PlayerPiece(player, piece);
+                for (int slot = 0; slot < pieceDistances.Length; ++slot) // loop over slots...
+                    if (IsSlotOccupied(slot)) // skip empty slots...
+                        for (int piece = 0; piece < PIECE_COUNT; ++piece) // loop over pieces...
+                            if (CalculatePosition(slot, piece) == position) // ...find match.
+                                return new SlotPiece(slot, piece);
             return null;
         }
 
         public LudoSave GetSave()
-            => new LudoSave(TurnCounter, CurrentPlayer, CurrentDieRoll, BoardInfo.Length, Rules, pieceDistances);
+            => new LudoSave(TurnCounter, CurrentSlot, CurrentDieRoll, BoardInfo.Length, Rules, pieceDistances);
 
         public bool IsLucky
             => CurrentDieRoll == 6; // TODO: implement rule that limits re-rolls to max three moves in a row.
@@ -180,14 +184,25 @@ namespace Ludo.GameLogic
                 }
         }
 
+        // also returns true for all pieces of empty slots
         protected bool IsPieceInBase(int piece)
-            => pieceDistances[CurrentPlayer, piece] == 0;
+            => pieceDistances[CurrentSlot].IsNull(out var p) || p[piece] == 0;
 
         protected bool IsPieceInGoal(int piece)
-            => pieceDistances[CurrentPlayer, piece] == BoardInfo.GoalDistance;
+            => pieceDistances[CurrentSlot]?[piece] == BoardInfo.GoalDistance;
 
         protected bool IsBaseRoll
             => CurrentDieRoll == 6 || (CurrentDieRoll == 1 && Rules.AllowBaseExitOnRoll1);
+
+        protected int RandomNonEmptySlot()
+        {
+            var slots = pieceDistances;
+            int player = random.Next() % slots.Count(p => p != null);
+            for (int slot = 0; slot < slots.Length; ++slot)
+                if (slots[slot] != null && player-- == 0)
+                        return slot;
+            throw new Exception("Doh!"); // should be unreachable
+        }
 
         // </protected>  <private>
 
@@ -200,12 +215,20 @@ namespace Ludo.GameLogic
         private void NextTurn()
         {
             if (!IsLucky)
-                CurrentPlayer = (CurrentPlayer + 1) % PlayerCount;
+                CurrentSlot = NextPlayerSlot();
             RollDie();
             ComputePieceInfo();
             ++TurnCounter;
             OnTurnBegun();
             AcceptInput();
+
+            int NextPlayerSlot()
+            {
+                int cs = CurrentSlot;
+                do cs = (cs + 1) % BoardInfo.SlotCount;
+                while (!IsSlotOccupied(cs));
+                return cs;
+            }
         }
 
         private void RollDie()
@@ -226,23 +249,27 @@ namespace Ludo.GameLogic
 
         private void MoveBasePiece(int piece)
         {
+            if (pieceDistances[CurrentSlot].IsNull(out var p))
+                throw new Exception("Invalid slot - there be race conditions?");
             OnMovingPiece(new MovingPieceEventArgs(piece));
-            pieceDistances[CurrentPlayer, piece] = 1;
+            p[piece] = 1;
             HandleMoveCollision(piece);
             NextTurn();
         }
 
         private void MoveBoardPiece(int piece)
         {
+            if (pieceDistances[CurrentSlot].IsNull(out var p))
+                throw new Exception("Invalid slot - there be race conditions?");
             OnMovingPiece(new MovingPieceEventArgs(piece));
-            int distance = pieceDistances[CurrentPlayer, piece] + CurrentDieRoll;
+            int distance = p[piece] + CurrentDieRoll;
             if (distance > BoardInfo.GoalDistance) // Piece moved too far - it bounces back. (Rules.AllowGoalBouncing)
             {
-                pieceDistances[CurrentPlayer, piece] = Bounce(distance);
+                p[piece] = Bounce(distance);
             }
             else
             {
-                pieceDistances[CurrentPlayer, piece] = distance;
+                p[piece] = distance;
                 if (CheckVictoryCondition())
                     return; // <-- Game finished !!!
             }
@@ -255,21 +282,21 @@ namespace Ludo.GameLogic
 
         private void HandleMoveCollision(int piece)
         {
-            if (currentPieces[piece].Collision is PlayerPiece ci)
+            if (currentPieces[piece].Collision is SlotPiece ci)
             {
-                if (ci.Player != CurrentPlayer)
+                if (ci.Slot != CurrentSlot)
                     KnockOut(ci);
             }
         }
 
-        private void KnockOut(PlayerPiece pp)
+        private void KnockOut(SlotPiece pp)
         {
-            pieceDistances[pp.Player, pp.Piece] = 0;
+            pieceDistances[pp.Slot][pp.Piece] = 0;
         }
 
-        private int CalculatePosition(int player, int piece)
+        private int CalculatePosition(int slot, int piece)
         {
-            int distance = pieceDistances[player, piece];
+            int distance = (pieceDistances[slot]?[piece]).GetValueOrDefault();
             if (distance == 0 || distance == BoardInfo.GoalDistance)
             {
                 // piece is in base or in goal.
@@ -278,22 +305,22 @@ namespace Ludo.GameLogic
             if (BoardInfo.IsInEndZone(distance))
             {
                 // we are in a collision-free end-zone.
-                return distance + player * BoardInfo.EndZoneLength;
+                return distance + slot * BoardInfo.EndZoneLength;
             }
             else
             {
                 // we are out on the competative board where collisions are possible!
-                return (BoardInfo.StartPosition(player) + distance - 1) % BoardInfo.Length;
+                return (BoardInfo.StartPosition(slot) + distance - 1) % BoardInfo.Length;
             }
         }
         
-        private int CalculateNewPosition(int player, int piece)
+        private int CalculateNewPosition(int slot, int piece)
         {
-            int distance = pieceDistances[player, piece] + CurrentDieRoll;
+            if (pieceDistances[slot].IsNull(out var p))
+                return NON_BOARD_POSITION; // empty slot... throw?
+            int distance = p[piece] + CurrentDieRoll;
             if (distance == BoardInfo.GoalDistance)
-            {
                 return NON_BOARD_POSITION; // goal
-            }
             if (distance > BoardInfo.GoalDistance)
             {
                 if (Rules.AllowGoalBouncing)
@@ -303,12 +330,12 @@ namespace Ludo.GameLogic
             }
             if (BoardInfo.IsInEndZone(distance))
             {
-                return distance + player * BoardInfo.EndZoneLength; // end-zone
+                return distance + slot * BoardInfo.EndZoneLength; // end-zone
             }
             else
             {
                 // we are out on the competative board where collisions are possible!
-                return (BoardInfo.StartPosition(player) + distance - 1) % BoardInfo.Length;
+                return (BoardInfo.StartPosition(slot) + distance - 1) % BoardInfo.Length;
             }
         }
 
@@ -317,7 +344,7 @@ namespace Ludo.GameLogic
             int goal = BoardInfo.GoalDistance;
             if (currentPieces.All(p => p.CurrentDistance == goal))
             {
-                _winner = CurrentPlayer;
+                _winner = CurrentSlot;
                 // update all PieceInfo so IsInGoal is true:
                 for (int i = 0; i < currentPieces.Length; ++i)
                     currentPieces[i] = new PieceInfo(goal, NON_BOARD_POSITION);
@@ -372,9 +399,9 @@ namespace Ludo.GameLogic
 
             void ComputeBoardPieceInfo(int piece)
             {
-                int oldDistance = pieceDistances[CurrentPlayer, piece];
+                int oldDistance = pieceDistances[CurrentSlot][piece];
                 int newDistance = oldDistance + CurrentDieRoll;
-                int oldPosition = CalculatePosition(CurrentPlayer, piece);
+                int oldPosition = CalculatePosition(CurrentSlot, piece);
                 if (newDistance == BoardInfo.GoalDistance)
                 {
                     currentPieces[piece] = new PieceInfo(oldDistance, oldPosition, NON_BOARD_POSITION); // goal!
@@ -393,11 +420,11 @@ namespace Ludo.GameLogic
                         return; // <---
                     }
                 }
-                int newPosition = CalculateNewPosition(CurrentPlayer, piece);
-                if (LookAtBoard(newPosition) is PlayerPiece pp)
+                int newPosition = CalculateNewPosition(CurrentSlot, piece);
+                if (LookAtBoard(newPosition) is SlotPiece pp)
                 {
                     //^ the new position collides with something...
-                    if (pp.Player == CurrentPlayer)
+                    if (pp.Slot == CurrentSlot)
                     {
                         //^ the new position collides with one of our own pieces
                         if (ALLOW_STACKING)
@@ -438,11 +465,11 @@ namespace Ludo.GameLogic
             {
                 if (IsBaseRoll)
                 {
-                    int startPosition = BoardInfo.StartPosition(CurrentPlayer);
-                    if (LookAtBoard(startPosition) is PlayerPiece collider)
+                    int startPosition = BoardInfo.StartPosition(CurrentSlot);
+                    if (LookAtBoard(startPosition) is SlotPiece collider)
                     {
                         //^ another piece is occupying our startPosition...
-                        if (collider.Player == CurrentPlayer)
+                        if (collider.Slot == CurrentSlot)
                         {
                             //^ we already have a piece on our startingPosition...
                             if (ALLOW_STACKING)
@@ -487,8 +514,9 @@ namespace Ludo.GameLogic
 
         // <fields>
 
-        // how far each piece has moved. [player, piece]
-        private readonly int[,] pieceDistances;
+        // how far each piece has moved. [slot, piece]
+        // inner array is null if slot is empty.
+        private readonly int[][] pieceDistances;
         private readonly PieceInfo[] currentPieces;
         private readonly Random random = new Random();
         private int _winner = NOT_STARTED; // NOT_STARTED (-2): game not started, -1: no winner yet.

@@ -16,7 +16,7 @@ namespace Ludo.API.Service.Components
             lobbyInfo = null;
             var game = ludoService.Games.TryGet(Id.Partial(gameId))?.Phase;
             if (game == null)
-                return false; //new Error { Code = Error.Codes.Err01GameNotFound };
+                return false;
             lobbyInfo = new LobbyInfo
             {
                 Access = game.Setup?.Access ?? LobbyAccess.@public,

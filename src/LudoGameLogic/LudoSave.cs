@@ -1,11 +1,12 @@
-﻿using System;
+﻿using Ludo.GameLogic.Extensions;
+using System;
 
 namespace Ludo.GameLogic
 {
     public struct LudoSave
     {
         public int TurnCounter { get; }
-        public int CurrentPlayer { get; }
+        public int CurrentSlot { get; }
         public int CurrentDieRoll { get; }
         public int BoardLength { get; }
         public Rules Rules { get; }
@@ -13,19 +14,19 @@ namespace Ludo.GameLogic
         public int PlayerCount 
             => pieceDistances.GetLength(0);
 
-        public int GetPieceDistance(int player, int piece)
-            => pieceDistances[player, piece];
+        public int GetPieceDistance(int slot, int piece)
+            => pieceDistances[slot]?[piece] ?? 0;
 
-        internal readonly int[,] pieceDistances;
+        internal readonly int[][] pieceDistances;
 
         // ctor
-        public LudoSave(int turn, int player, int dieRoll, int boardLength, Rules rules, int[,] playerPieceDistances)
+        public LudoSave(int turn, int slot, int dieRoll, int boardLength, Rules rules, int[][] playerPieceDistances)
         {
             TurnCounter = turn;
-            CurrentPlayer = player;
+            CurrentSlot = slot;
             CurrentDieRoll = dieRoll;
             BoardLength = boardLength;
-            pieceDistances = playerPieceDistances;
+            pieceDistances = playerPieceDistances.JaggedCopy();
             Rules = rules;
         }
     }

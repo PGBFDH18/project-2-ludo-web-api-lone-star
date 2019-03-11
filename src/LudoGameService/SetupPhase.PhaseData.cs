@@ -29,6 +29,8 @@ namespace Ludo.API.Service
 
             string ISlotArray.this[int i] => slots[i].UserId;
             int ISlotArray.Length => slots.Length;
+            bool ISlotArray.IsInRange(int index) => unchecked((uint)index < (uint)slots.Length);
+            int ISlotArray.IndexOf(string userId) => Array.FindIndex(slots, (s) => s.UserId == userId);
 
             IReadOnlyList<string> ISetupPhaseData.Others => Array.AsReadOnly(others);
             IReadOnlyList<UserReady> ISetupPhaseData.Slots => Array.AsReadOnly(slots);

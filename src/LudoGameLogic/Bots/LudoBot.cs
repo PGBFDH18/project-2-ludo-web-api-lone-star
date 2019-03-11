@@ -9,7 +9,7 @@ namespace Ludo.Bots
         public abstract string StaticName { get; }
 
         public bool IsRegistered => sessionRef.TryGetTarget(out _);
-        public int PlayerIndex => IsRegistered ? p_index : -1;
+        public int SlotIndex => IsRegistered ? s_index : -1;
 
         public void TryMakeMove()
         {
@@ -17,14 +17,14 @@ namespace Ludo.Bots
                 TryMakeMove(session);
         }
 
-        public void Register(ISession session, int playerIndex, bool tryMakeMove)
+        public void Register(ISession session, int slotIndex, bool tryMakeMove)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
             if (IsRegistered)
                 throw new InvalidOperationException("Cannot have multiple simultanious registrations." +
                     " Unregister from the previous session first if re-registration was intended.");
-            SetPlayerIndex(session, playerIndex);
+            SetPlayerIndex(session, slotIndex);
             session.AcceptingInput += Session_AcceptingInput;
             sessionRef.SetTarget(session);
             OnRegistered();
@@ -80,20 +80,20 @@ namespace Ludo.Bots
 
         private void TryMakeMove(ISession session)
         {
-            if (session.CurrentPlayer == PlayerIndex)
+            if (session.CurrentSlot == SlotIndex)
                 MakeMove(session);
         }
 
-        private void SetPlayerIndex(ISession session, int playerIndex)
+        private void SetPlayerIndex(ISession session, int slotIndex)
         {
-            if (unchecked((uint)playerIndex >= (uint)session.PlayerCount))
-                throw new ArgumentOutOfRangeException(nameof(playerIndex));
-            p_index = playerIndex;
+            if (unchecked((uint)slotIndex >= (uint)session.BoardInfo.SlotCount))
+                throw new ArgumentOutOfRangeException(nameof(slotIndex));
+            s_index = slotIndex;
         }
 
         // <fields>
 
-        private int p_index;
+        private int s_index;
         private readonly WeakReference<ISession> sessionRef = new WeakReference<ISession>(null);
     }
 }

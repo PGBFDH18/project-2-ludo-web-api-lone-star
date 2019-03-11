@@ -13,12 +13,9 @@ namespace Ludo.API.Service.Components
         public Error GetTurnInfo(string gameId, int slot, out TurnInfo turnInfo)
         {
             turnInfo = null;
-            var g = ludoService.Games.TryGet(Id.Partial(gameId));
-            if (g == null)
-                return Error.Codes.E01GameNotFound;
-            var ingame = g.Phase.Ingame;
-            if (ingame == null)
-                return Error.Codes.E07NotInGamePhase;
+            var err = ludoService.GetIngame(gameId, out var ingame);
+            if (err != Error.Codes.E00NoError)
+                return err;
             if (!ingame.IsValidSlot(slot))
                 return Error.Codes.E10InvalidSlotIndex;
             if (ingame.Slots[slot] == null)

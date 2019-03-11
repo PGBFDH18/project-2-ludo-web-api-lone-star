@@ -13,12 +13,9 @@ namespace Ludo.API.Service.Components
         public Error TryGetBoardState(string gameId, out BoardState bstate)
         {
             bstate = default;
-            var g = ludoService.Games.TryGet(Id.Partial(gameId));
-            if (g == null)
-                return Error.Codes.E01GameNotFound;
-            var ingame = g.Phase.Ingame;
-            if (ingame == null)
-                return Error.Codes.E07NotInGamePhase;
+            var err = ludoService.GetIngame(gameId, out var ingame);
+            if (err != Error.Codes.E00NoError)
+                return err;
             bstate = ingame.GetBoardState();
             return Error.Codes.E00NoError;
         }

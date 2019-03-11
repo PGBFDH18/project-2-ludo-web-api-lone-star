@@ -8,7 +8,9 @@ namespace Ludo.API.Web.Controllers
     {
         protected internal const string ROUTE_gameId = "{gameId:required:minLength(3)}";
         protected internal const string ROUTE_slotStr = "{slotStr:required}";
-        
+        protected internal const string ROUTE_pieceStr = "{pieceStr:required}";
+
+
         protected LudoControllerBase() { }
 
         // ...warning, use with care...

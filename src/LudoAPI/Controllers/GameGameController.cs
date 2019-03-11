@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using Ludo.API.Service;
-using Ludo.API.Models;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Ludo.API.Models;
 using Ludo.API.Service.Components;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Ludo.API.Web.Controllers
 {
@@ -15,14 +11,17 @@ namespace Ludo.API.Web.Controllers
         private readonly IGetCurrent getCurrent;
         private readonly IGetTurnInfo getTurnInfo;
         private readonly IPassTurn passTurn;
+        private readonly IConcede concede;
 
         public GameGameController(
             IGetCurrent getCurrent,
             IGetTurnInfo getTurnInfo,
-            IPassTurn passTurn) {
+            IPassTurn passTurn,
+            IConcede concede) {
             this.getCurrent = getCurrent;
             this.getTurnInfo = getTurnInfo;
             this.passTurn = passTurn;
+            this.concede = concede;
         }
 
         // operationId: ludoGetCurrent
@@ -37,6 +36,21 @@ namespace Ludo.API.Web.Controllers
             if (err == Error.Codes.E01GameNotFound)
                 return NotFound();
             return Conflict();
+        }
+
+        // operationId: ludoConcede
+        [ProducesResponseType(204)]
+        [ProducesResponseType(404, Type = typeof(Error))]
+        [ProducesResponseType(409)]
+        [HttpDelete] public IActionResult Delete(
+            [FromRoute]string gameId, [FromHeader]string userId)
+        {
+            var err = concede.Concede(gameId, userId);
+            if (err == Error.Codes.E00NoError)
+                return NoContent();
+            if (err == Error.Codes.E07NotInGamePhase)
+                return Conflict();
+            return NotFound(err);
         }
 
         // -------------------------------------------------------------------
@@ -76,7 +90,5 @@ namespace Ludo.API.Web.Controllers
                 return NotFound(err);
             return Conflict(err);
         }
-
-        //TODO:  delete
     }
 }

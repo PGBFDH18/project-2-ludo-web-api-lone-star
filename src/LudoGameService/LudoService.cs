@@ -1,6 +1,7 @@
 ﻿using Ludo.API.Models;
 using Ludo.API.Service.Extensions;
 using System;
+using System.Linq;
 
 namespace Ludo.API.Service
 {
@@ -59,10 +60,9 @@ namespace Ludo.API.Service
             var setup = game.Phase.Setup;
             if (setup == null)
                 return Error.Codes.E03NotInSetupPhase;
-            bool wasLastUser = false;
-            var err = setup.TryLeaveLobby(userId, out wasLastUser);
+            var err = setup.TryLeaveLobby(userId, out bool wasLastUser);
             if (wasLastUser) // last user has left the lobby?
-                Games.Remove(Id.Partial(userId), out _);
+                Games.Remove(Id.Partial(gameId), out _);
             return err;
         }
         
@@ -112,6 +112,24 @@ namespace Ludo.API.Service
                 return Error.Codes.E01GameNotFound;
             return game.TryStartGame(startingSlot);
             // TODO: loading a saved game
+        }
+
+        public Error Concede(string gameId, string userId) //TODO: auth!
+        {
+            if (!Users.ContainsId(Id.Partial(userId)))
+                return Error.Codes.E02UserNotFound;
+            var g = Games.TryGet(Id.Partial(gameId));
+            if (g == null)
+                return Error.Codes.E01GameNotFound;
+            var ingame = g.Phase.Ingame;
+            if (ingame == null)
+                return Error.Codes.E07NotInGamePhase;
+            ingame.Concede(userId, out int remainingUserCount);
+            if (remainingUserCount == 0) // there was only one player (the rest is empty slots / bots)
+                Games.Remove(Id.Partial(gameId), out _); // conceeded single player games are not recorded.
+            if (remainingUserCount == 1) // only one player remaining (the rest is empty slots / bots)
+                throw new NotImplementedException(); // TODO/FIXME: set winner, transition to Finished
+            return Error.Codes.E00NoError;
         }
     }
 }

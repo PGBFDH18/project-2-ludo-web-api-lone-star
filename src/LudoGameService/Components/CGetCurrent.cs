@@ -13,12 +13,9 @@ namespace Ludo.API.Service.Components
         public Error GetCurrent(string gameId, out TurnSlotDie turnSlotDie)
         {
             turnSlotDie = null;
-            var game = ludoService.Games.TryGet(Id.Partial(gameId));
-            if (game == null)
-                return Error.Codes.E01GameNotFound;
-            var ingame = game.Phase.Ingame;
-            if (ingame == null)
-                return Error.Codes.E07NotInGamePhase;
+            var err = ludoService.GetIngame(gameId, out var ingame);
+            if (err != Error.Codes.E00NoError)
+                return err;
             turnSlotDie = ingame.GetCurrent();
             return Error.Codes.E00NoError;
         }

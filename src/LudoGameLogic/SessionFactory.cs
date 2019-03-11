@@ -7,7 +7,7 @@ namespace Ludo.GameLogic
     // ^så jävla många rule variants alltså...
     public static class SessionFactory
     {
-        public const int RANDOM_STARTING_PLAYER = -1;
+        //public const int RANDOM_STARTING_PLAYER = -1;
         public static readonly int MinPlayers = 2;
         public static readonly int MaxPlayers = 4;
 
@@ -16,10 +16,9 @@ namespace Ludo.GameLogic
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static bool PlayerCount(int playerCount)
                 => MinPlayers <= playerCount & playerCount <= MaxPlayers;
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static bool StartingPlayer(int startingPlayer, int playerCount)
-                => startingPlayer == RANDOM_STARTING_PLAYER | unchecked((uint)startingPlayer < (uint)playerCount);
+            //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+            //public static bool StartingPlayer(int startingPlayer, int playerCount)
+            //    => startingPlayer == RANDOM_STARTING_PLAYER | unchecked((uint)startingPlayer < (uint)playerCount);
         }
 
         public static class Validate
@@ -29,21 +28,21 @@ namespace Ludo.GameLogic
                 if (!IsValid.PlayerCount(playerCount))
                     throw new ArgumentOutOfRangeException(nameof(playerCount), $"Min: {MinPlayers}, Max: {MaxPlayers}.");
             }
-            public static void StartingPlayer(int startingPlayer, int playerCount)
-            {
-                if (!IsValid.StartingPlayer(startingPlayer, playerCount))
-                    throw new ArgumentOutOfRangeException(nameof(startingPlayer));
-            }
+            //public static void StartingPlayer(int startingPlayer, int playerCount)
+            //{
+            //    if (!IsValid.StartingPlayer(startingPlayer, playerCount))
+            //        throw new ArgumentOutOfRangeException(nameof(startingPlayer));
+            //}
         }
 
-        
-        public static ISession New(int playerCount = 2, Rules rules = default(Rules), int startingPlayer = RANDOM_STARTING_PLAYER, int boardLength = BoardInfo.DEFAULT_LENGTH)
+
+        public static ISession New(Rules rules = default(Rules), int boardLength = BoardInfo.DEFAULT_LENGTH)
         {
-            Validate.PlayerCount(playerCount);
-            Validate.StartingPlayer(startingPlayer, playerCount);
+            //Validate.PlayerCount(playerCount);
+            //Validate.StartingPlayer(startingPlayer, playerCount);
             BoardInfo.Validate.Length(boardLength);
 
-            return new Session(playerCount, new BoardInfo(boardLength), rules, startingPlayer);
+            return new Session(new BoardInfo(boardLength), rules);
         }
 
         // Loads a gamestate.

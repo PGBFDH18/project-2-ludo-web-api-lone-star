@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Ludo.API.Service.Extensions
+namespace Ludo.GameLogic.Extensions
 {
     public static class TExtension
     {

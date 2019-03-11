@@ -23,7 +23,8 @@ namespace Ludo.API.Models
                 E13MaxSlotsReached = 13,
                 E14NotAllUsersReady = 14,
                 E15NotYourTurn = 15,
-                E16SlotIsEmpty = 16;
+                E16SlotIsEmpty = 16,
+                E17GameNotStarted = 17;
         }
     }
 }
