@@ -2,22 +2,20 @@
 
 namespace Ludo.API.Service.Components
 {
-    public class CGetCurrent : IGetCurrent
+    public class CMovePiece : IMovePiece
     {
         private readonly ILudoService ludoService;
 
-        public CGetCurrent(ILudoService ludoService) {
+        public CMovePiece(ILudoService ludoService) {
             this.ludoService = ludoService;
         }
 
-        public Error GetCurrent(string gameId, out TurnSlotDie turnSlotDie)
+        public Error MovePiece(string gameId, int slot, int piece)
         {
-            turnSlotDie = null;
             var err = ludoService.GetIngame(gameId, out var ingame);
             if (err)
                 return err;
-            turnSlotDie = ingame.GetCurrent();
-            return Error.Codes.E00NoError;
+            return ingame.MovePiece(slot, piece);
         }
     }
 }

@@ -33,9 +33,13 @@ namespace Ludo.API.Models
             => error.Code != code;
 
         public static implicit operator Error(int errCode)
-            => new Error(errCode); // TODO: auto-map descriptions based on error code
+            => new Error(errCode); // TODO: auto-map default descriptions based on error code
 
         public static implicit operator Error((int, string) errPair)
             => new Error(errPair.Item1, errPair.Item2);
+
+        // a lot of if statements test for NoError, so lets simplify:
+        public static implicit operator bool(Error err)
+            => err.Code != Codes.E00NoError;
     }
 }

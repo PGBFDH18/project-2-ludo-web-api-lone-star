@@ -1,8 +1,8 @@
 ﻿namespace Ludo.API.Models
 {
-    public class PlayerPiece
+    public class SlotPiece
     {
-        public int Player { get; set; }
+        public int Slot { get; set; }
         public int Piece { get; set; }
     }
 }

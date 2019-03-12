@@ -339,6 +339,10 @@ paths:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Game not in setup stage (i.e. already in progress / ended).
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/Error'
       #TODO: require game auth token + 401 & 403 response
 
     put: # we are replacing the content of the slot resource.
@@ -460,29 +464,30 @@ paths:
         '409':
           description: Game is not in the ingame phase.
     
-    put: # we are replacing the games board-state resource.
-      tags:
-        - players
-      summary: Set the BoardState.
-      description: Setting the BoardState can only be done while still in lobby.
-      operationId: ludoSetBoardState
-      requestBody:
-        description: The board state (BoardState object containing PieceDistances).
-        required: true
-        content:
-          application/JSON:
-            schema:
-              $ref: '#/components/schemas/BoardState'
-      responses:
-        '204':
-          description: OK
-        '400':
-          description: Bad input parameter.
-        '404':
-          description: No such game exists.
-        '409':
-          description: Game has already started (perhaps even ended).
-      #TODO: require game auth token + 401 & 403 response
+    # TODO...
+    # put: # we are replacing the games board-state resource.
+    #   operationId: ludoSetBoardState
+    #   tags:
+    #     - players
+    #   summary: Set the BoardState.
+    #   description: Setting the BoardState can only be done while still in lobby.
+    #   requestBody:
+    #     description: The board state (BoardState object containing PieceDistances).
+    #     required: true
+    #     content:
+    #       application/JSON:
+    #         schema:
+    #           $ref: '#/components/schemas/BoardState'
+    #   responses:
+    #     '204':
+    #       description: OK
+    #     '400':
+    #       description: Bad input parameter.
+    #     '404':
+    #       description: No such game exists.
+    #     '409':
+    #       description: Game has already started (perhaps even ended).
+    #   #TODO: require game auth token + 401 & 403 response
   
   /ludo/game:
     get:
@@ -636,7 +641,7 @@ paths:
         '204':
           description: OK
         '400':
-          description: Bad slot.
+          description: Bad input parameter.
         '404':
           description: No such game / slot exists.
           content:
@@ -657,7 +662,7 @@ paths:
       - $ref: '#/components/parameters/slotPath'
       - $ref: '#/components/parameters/pieceIndexPath'
     # get: PieceInfo!
-    # patch: MovePiece! <---- patch or post?
+    # post: MovePiece! <---- patch or post?
     
     get:
       operationId: ludoGetPieceInfo
@@ -675,15 +680,21 @@ paths:
               schema:
                 $ref: '#/components/schemas/PieceInfo'
         '400':
-          description: Bad slot or piece index.
+          description: Bad input parameter.
         '404':
-          description: No such game exists.
+          description: No such game / slot / piece exists.
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/Error'
         '409':
-          description: |
-            PieceInfo can only be acquired / calculated for the active player.
-            (Perhaps game has ended or not started yet.)
+          description: Unable to acquire piece info for this slot-piece (at this time).
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/Error'
     
-    patch:
+    post: # we are "creating" a new turn
       operationId: ludoMovePiece
       tags: 
         - players
@@ -695,13 +706,19 @@ paths:
         '204':
           description: OK
         '400':
-          description: Bad player or piece id.
+          description: Bad input parameter.
         '404':
-          description: No such game exists.
+          description: No such game / slot / piece exists.
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/Error'
         '409':
-          description: >
-            Not a movable piece, or not the active player
-            (e.g. game has ended / not started yet).
+          description: Unable to move piece (e.g. not your turn).
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/Error'
       #TODO: require game auth token + 401 & 403 response
   
   # This path is not required to play, it just allows anyone to query moves for an arbitrary gamestate.
@@ -1159,19 +1176,20 @@ components:
             Where this piece will be on the board if it is moved.
             Omitted if the piece cannot move.
         collision:
-          $ref: '#/components/schemas/PlayerPiece'
+          $ref: '#/components/schemas/SlotPiece'
     
-    PlayerPiece:
+    SlotPiece:
           type: object
           required:
-            - player
+            - slot
             - piece
           description: |
-            A player and piece tuple for describing the content of a target square on the board.
-            For example used to describe what a piece would collide with if it were to be moved. (Does not imply that the move in question is legal!)
+            A slot and piece tuple for describing the content of a target square on the board.
+            For example used to describe what a piece would collide with if it were to be moved.
+            Does not imply that a move is legal!
             Omitted if the target square is empty / there is no collision.
           properties:
-            player:
+            slot:
               type: integer
               format: int32
               minimum: 0

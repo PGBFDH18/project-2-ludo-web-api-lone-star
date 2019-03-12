@@ -24,7 +24,9 @@ namespace Ludo.API.Models
                 E14NotAllUsersReady = 14,
                 E15NotYourTurn = 15,
                 E16SlotIsEmpty = 16,
-                E17GameNotStarted = 17;
+                E17GameNotStarted = 17,
+                E18InvalidPieceIndex = 18,
+                E19GameRuleViolation = 19;
         }
     }
 }

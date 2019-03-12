@@ -21,11 +21,14 @@ namespace Ludo.API.Web.Controllers
         [HttpGet] public ActionResult<BoardState> Get ([FromRoute]string gameId)
         {
             var err = boardState.TryGetBoardState(gameId, out Models.BoardState bstate);
-            if (err == Error.Codes.E00NoError)
+            if (!err)
                 return bstate;
             if (err == Error.Codes.E01GameNotFound)
                 return NotFound();
             return Conflict();
         }
+
+        // operationId: ludoSetBoardState
+        // TODO!
     }
 }

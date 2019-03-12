@@ -14,7 +14,7 @@ namespace Ludo.API.Service.Components
         {
             turnInfo = null;
             var err = ludoService.GetIngame(gameId, out var ingame);
-            if (err != Error.Codes.E00NoError)
+            if (err)
                 return err;
             if (!ingame.IsValidSlot(slot))
                 return Error.Codes.E10InvalidSlotIndex;

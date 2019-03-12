@@ -5,7 +5,7 @@ namespace Ludo.GameLogic
     public interface ISession
     {
         // A new turn has begun. (Informational: Not accepting input.)
-        event EventHandler TurnBegun;
+        event EventHandler<TurnBegunEventArgs> TurnBegun;
         // The CurrentPlayer is passing their turn. (Turn has not passed yet!) (Informational: Not accepting input.)
         event EventHandler PassingTurn;
         // The CurrentPlayer is moving a piece. (The piece has not moved yet!) (Informational: Not accepting input.)
@@ -16,7 +16,7 @@ namespace Ludo.GameLogic
         event EventHandler WinnerDeclared;
 
         // Started accepting input. (Useful for implementing bots!)
-        // IMPORTANT: Remaining subscribers are NOT invoked if an invoked subscriber supplies input.
+        // IMPORTANT: Remaining subscribers are NOT invoked if a subscriber supplies input during invokation.
         event EventHandler AcceptingInput;
         // Calling MovePiece and PassTurn is only valid while this is true.
         bool IsAcceptingInput { get; }
@@ -68,6 +68,8 @@ namespace Ludo.GameLogic
 
         // Get info about piece [0-3] for the current player.
         PieceInfo GetPiece(int piece);
+        // Same as GetPiece(piece).CanMove without returning the whole struct.
+        bool CanMovePiece(int piece);
         // Move piece [0-3] for the current player (and proceed to the next turn / roll die).
         void MovePiece(int piece);
         // Call this to pass the turn to the next player, or if lucky, simply re-roll the die.

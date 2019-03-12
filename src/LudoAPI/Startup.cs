@@ -36,6 +36,7 @@ namespace Ludo.API.Web
             services.AddSingleton<IFindUser, CFindUser>();
             services.AddSingleton<IGetCurrent, CGetCurrent>();
             services.AddSingleton<IGetLobby, CGetLobby>();
+            services.AddSingleton<IGetPieceInfo, CGetPieceInfo>();
             services.AddSingleton<IGetPlayerReady, CGetPlayerReady>();
             services.AddSingleton<IGetTurnInfo, CGetTurnInfo>();
             services.AddSingleton<IGetUser, CGetUser>();
@@ -45,6 +46,7 @@ namespace Ludo.API.Web
             services.AddSingleton<IListGames, CListGames>();
             services.AddSingleton<IListLobbies, CListLobbies>();
             services.AddSingleton<IListUsers, CListUsers>();
+            services.AddSingleton<IMovePiece, CMovePiece>();
             services.AddSingleton<IPassTurn, CPassTurn>();
             services.AddSingleton<ISlotUser, CSlotUser>();
             services.AddSingleton<IStartGame, CStartGame>();

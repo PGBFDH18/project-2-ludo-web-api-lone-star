@@ -42,7 +42,7 @@ namespace Ludo.API.Service
             if (setup == null)
                 return Error.Codes.E03NotInSetupPhase;
             var err = setup.TryFinalLock();
-            if (err != Error.Codes.E00NoError)
+            if (err)
                 return err;
             var trans = new TransitionPhase(GamePhase.starting, setup);
             //since only once thread can successfully call TryFinalLock, we don't need a CompareExchange here:

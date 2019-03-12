@@ -60,12 +60,7 @@ namespace Ludo.API.Web.Controllers
             if (string.IsNullOrEmpty(userId))
                 return BadRequest();
             var err = joinLobby.TryJoinLobby(gameId, userId, out int slot);
-            if (err == Error.Codes.E00NoError)
-                return slot;
-            if (err == Error.Codes.E01GameNotFound || err == Error.Codes.E02UserNotFound)
-                return NotFound(err);
-            else
-                return Conflict(err);
+            return OkOrNotFoundOrConflict(slot, err);
         }
 
         // operationId: ludoStartGame
@@ -75,7 +70,7 @@ namespace Ludo.API.Web.Controllers
         [HttpPost] public IActionResult Post([FromRoute]string gameId)
         {
             var err = startGame.TryStartGame(gameId);
-            if (err == Error.Codes.E00NoError)
+            if (!err)
                 return Created($"../game/{gameId}", null);
             if (err == Error.Codes.E01GameNotFound)
                 return NotFound();
@@ -93,12 +88,9 @@ namespace Ludo.API.Web.Controllers
             if (string.IsNullOrEmpty(userId))
                 return BadRequest();
             var err = leaveLobby.TryLeaveLobby(userId: userId, gameId: gameId);
-            if (err == Error.Codes.E00NoError)
-                return NoContent();
-            if (err == Error.Codes.E01GameNotFound || err == Error.Codes.E02UserNotFound)
-                return NotFound(err);
-            else
-                return Conflict(err); // Not in setup phase //TODO: change this so it calls a concede?
+            return NoContentOrNotFoundOrConflict(err);
+            // Conflict: Not in setup phase
+            //TODO: ^change this so it calls a concede?
         }
 
         // -------------------------------------------------------------------
@@ -111,28 +103,24 @@ namespace Ludo.API.Web.Controllers
         [HttpGet(ROUTE_slotStr)] public ActionResult<PlayerReady> Get (
             [FromRoute]string gameId, [FromRoute]string slotStr)
         {
-            if (!TryParseSlot(slotStr, out int slot))
+            if (!TryParse(slotStr, out int slot))
                 return BadRequest();
             var err = getPlayerReady.TryGetPlayerReady(gameId, slot, out PlayerReady playerReady);
-            if (err == Error.Codes.E00NoError)
-                return playerReady;
-            if (err == Error.Codes.E01GameNotFound || err == Error.Codes.E10InvalidSlotIndex)
-                return NotFound(err);
-            return Conflict();
+            return OkOrNotFoundOrConflict(playerReady, err);
         }
 
         // operationId: ludoSetSlotPlayer
         [HttpPut(ROUTE_slotStr)] public IActionResult Put (
             [FromRoute]string gameId, [FromRoute]string slotStr, [FromHeader]string userId)
         {
-            if (!TryParseSlot(slotStr, out int slot))
+            if (!TryParse(slotStr, out int slot, true))
                 return BadRequest();
-            var err = slotUser.TryClaimSlot(gameId, slot, userId);
-            if (err == Error.Codes.E00NoError)
-                return NoContent();
-            if (err == Error.Codes.E01GameNotFound || err == Error.Codes.E02UserNotFound || err == Error.Codes.E10InvalidSlotIndex)
-                return NotFound(err);
-            return Conflict(err);
+            Error err;
+            if (slot == -1)
+                err = slotUser.TryUnSlotUser(gameId, userId);
+            else
+                err = slotUser.TryClaimSlot(gameId, slot, userId);
+            return NoContentOrNotFoundOrConflict(err);
         }
 
         // operationId: ludoSetSlotReady
@@ -143,14 +131,10 @@ namespace Ludo.API.Web.Controllers
         [HttpPatch(ROUTE_slotStr)] public IActionResult Patch (
             [FromRoute]string gameId, [FromRoute]string slotStr, [FromBody]PlayerReady playerReady)
         {
-            if (!TryParseSlot(slotStr, out int slot))
+            if (!TryParse(slotStr, out int slot))
                 return BadRequest();
             var err = slotUser.TrySetSlotReady(gameId, slot, playerReady);
-            if (err == Error.Codes.E00NoError)
-                return NoContent();
-            if (err == Error.Codes.E01GameNotFound || err == Error.Codes.E02UserNotFound || err == Error.Codes.E10InvalidSlotIndex)
-                return NotFound(err);
-            return Conflict(err);
+            return NoContentOrNotFoundOrConflict(err);
         }
     }
 }

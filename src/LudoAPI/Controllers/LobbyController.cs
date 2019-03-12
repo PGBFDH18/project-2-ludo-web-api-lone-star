@@ -54,7 +54,7 @@ namespace Ludo.API.Web.Controllers
                 return BadRequest();
             // TODO/FIXME: reservations
             var err = createLobby.TryCreateLobby(lobby.UserId, lobby.Slots, lobby.Access, out string gameId);
-            if (err == Error.Codes.E00NoError)
+            if (!err)
                 return Created(gameId, null);
             if (err == Error.Codes.E02UserNotFound)
                 return NotFound(err);

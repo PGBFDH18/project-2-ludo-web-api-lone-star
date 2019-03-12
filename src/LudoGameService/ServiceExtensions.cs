@@ -2,7 +2,7 @@
 
 namespace Ludo.API.Service
 {
-    internal static class ServiceExtensions
+    public static class ServiceExtensions
     {
         public static Error GetIngame(this ILudoService service, string gameId, out IngamePhase ingame)
         {

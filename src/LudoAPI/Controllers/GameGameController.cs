@@ -46,7 +46,7 @@ namespace Ludo.API.Web.Controllers
             [FromRoute]string gameId, [FromHeader]string userId)
         {
             var err = concede.Concede(gameId, userId);
-            if (err == Error.Codes.E00NoError)
+            if (!err)
                 return NoContent();
             if (err == Error.Codes.E07NotInGamePhase)
                 return Conflict();
@@ -63,14 +63,10 @@ namespace Ludo.API.Web.Controllers
         [HttpGet(ROUTE_slotStr)] public ActionResult<TurnInfo> Get (
             [FromRoute]string gameId, [FromRoute]string slotStr)
         {
-            if (!TryParseSlot(slotStr, out int slot))
+            if (!TryParse(slotStr, out int slot))
                 return BadRequest();
             var err = getTurnInfo.GetTurnInfo(gameId, slot, out TurnInfo turnInfo);
-            if (err == Error.Codes.E00NoError)
-                return turnInfo;
-            if (err == Error.Codes.E01GameNotFound || err == Error.Codes.E05InvalidSlotCount)
-                return NotFound(err);
-            return Conflict(err);
+            return OkOrNotFoundOrConflict(turnInfo, err);
         }
 
         // operationId: ludoPassTurn
@@ -81,14 +77,10 @@ namespace Ludo.API.Web.Controllers
         [HttpPost(ROUTE_slotStr)] public IActionResult Post (
             [FromRoute]string gameId, [FromRoute]string slotStr)
         {
-            if (!TryParseSlot(slotStr, out int slot))
+            if (!TryParse(slotStr, out int slot))
                 return BadRequest();
             var err = passTurn.PassTurn(gameId, slot);
-            if (err == Error.Codes.E00NoError)
-                return NoContent();
-            if (err == Error.Codes.E01GameNotFound || err == Error.Codes.E10InvalidSlotIndex)
-                return NotFound(err);
-            return Conflict(err);
+            return NoContentOrNotFoundOrConflict(err);
         }
     }
 }

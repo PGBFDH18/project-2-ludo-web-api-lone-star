@@ -5,6 +5,6 @@
         public int Distance { get; set; }
         public int Position { get; set; }
         public int Moved { get; set; }
-        public PlayerPiece Collision { get; set; }
+        public SlotPiece Collision { get; set; }
     }
 }

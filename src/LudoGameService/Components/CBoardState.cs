@@ -14,7 +14,7 @@ namespace Ludo.API.Service.Components
         {
             bstate = default;
             var err = ludoService.GetIngame(gameId, out var ingame);
-            if (err != Error.Codes.E00NoError)
+            if (err)
                 return err;
             bstate = ingame.GetBoardState();
             return Error.Codes.E00NoError;

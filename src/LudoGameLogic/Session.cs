@@ -48,7 +48,7 @@ namespace Ludo.GameLogic
             => unchecked((uint)slot < (uint)pieceDistances.Length);
 
         public bool TryAddPlayer(int slot)
-            => IsBoardSlot(slot)
+            => !IsLoadedFromSavegame && IsBoardSlot(slot)
             && Interlocked.CompareExchange(ref pieceDistances[slot], new int[PIECE_COUNT], null) == null;
 
         public bool IsSlotOccupied(int slot)
@@ -72,7 +72,7 @@ namespace Ludo.GameLogic
 
         // </ctors> <events>
 
-        public event EventHandler TurnBegun;
+        public event EventHandler<TurnBegunEventArgs> TurnBegun;
 
         public event EventHandler PassingTurn;
 
@@ -105,6 +105,9 @@ namespace Ludo.GameLogic
         public PieceInfo GetPiece(int piece)
             => currentPieces[piece];
 
+        public bool CanMovePiece(int piece)
+            => currentPieces[piece].CanMove;
+
         public bool CanMove { get; private set; }
         public bool CanPass => !CanMove; // TODO: house-rules
         
@@ -112,7 +115,7 @@ namespace Ludo.GameLogic
         {
             if (!IsAcceptingInput)
                 throw new InvalidOperationException("Session is not in an input accepting state!");
-            if (!currentPieces[piece].CanMove)
+            if (!CanMovePiece(piece))
                 throw new LudoRuleException("Rules does not allow the current player to " + $"move piece #{piece}.");
             BlockInput();
             if (currentPieces[piece].IsInBase)
@@ -157,8 +160,8 @@ namespace Ludo.GameLogic
 
         // </public>  <protected>
 
-        protected virtual void OnTurnBegun(EventArgs e = null)
-            => TurnBegun?.Invoke(this, e ?? EventArgs.Empty);
+        protected virtual void OnTurnBegun(TurnBegunEventArgs e = null)
+            => TurnBegun?.Invoke(this, e ?? new TurnBegunEventArgs(TurnCounter, currentPieces));
 
         protected virtual void OnPassingTurn(EventArgs e = null)
             => PassingTurn?.Invoke(this, e ?? EventArgs.Empty);

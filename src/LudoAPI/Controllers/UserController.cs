@@ -53,7 +53,7 @@ namespace Ludo.API.Web.Controllers
             if (string.IsNullOrEmpty(userName))
                 return BadRequest();
             var err = userNameAcceptable.IsUserNameAcceptable(userName);
-            if (err != Error.Codes.E00NoError)
+            if (err)
                 return UnprocessableEntity(err);
             if (createUser.TryCreateUser(userName, out string userId))
                 return Created(userId, null);

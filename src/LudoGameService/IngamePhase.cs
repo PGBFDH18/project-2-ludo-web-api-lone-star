@@ -5,11 +5,15 @@ using System.Linq;
 
 namespace Ludo.API.Service
 {
-    public class IngamePhase : IGamePhase
+    public partial class IngamePhase : IGamePhase
     {
         private readonly GameLogic.ISession session;
         private readonly ISlotArray slots;
         private readonly object sessionLocker = new object();
+
+        // NEVER MODIFY THESE OUTSIDE OF SESSION EVENT LISTENERS!
+        private readonly TurnCache[] turnCache; // cyclic buffer
+        private int turnCacheIndex = -1; // current buffer index
 
         public IngamePhase(ISlotArray slots)
         {
@@ -17,10 +21,37 @@ namespace Ludo.API.Service
             this.slots = s;
             session = GameLogic.SessionFactory.New();
 
+            int players = 0;
             for (int i = 0; i < s.Length; ++i)
                 if (s[i] != null)
+                {
+                    ++players;
                     session.TryAddPlayer(i); // should never fail here.
+                }
+
+            turnCache = new TurnCache[players * 2];
+            session.TurnBegun += Session_TurnBegun;
         }
+
+        private void Session_TurnBegun(object sender, GameLogic.TurnBegunEventArgs e)
+        {
+            // Since this is the only code that updates this array and
+            // we ASSUME that session is handled correctly elsewhere...
+            // so no race condition on the event trigger...
+            // ...then we should not need a lock here.
+            // (Importantly, reference assignment is atomic in .Net)
+
+            int i = turnCacheIndex + 1 % turnCache.Length;
+            turnCache[i] = new TurnCache(e, session.CurrentSlot);
+            turnCacheIndex = i;
+        }
+
+        public ISlotArray Slots => slots;
+        public bool HasStarted => session.HasStarted;
+        public bool IsLoadedFromSave => session.IsLoadedFromSavegame;
+
+        private TurnCache CurrentTurn
+            => turnCacheIndex == -1 ? null : turnCache[turnCacheIndex];
 
         internal bool Start()
         {
@@ -28,10 +59,11 @@ namespace Ludo.API.Service
                 return session.Start();
         }
 
-        public ISlotArray Slots => slots;
-
         public bool IsValidSlot(int slot)
             => unchecked((uint)slot < (uint)slots.Length);
+
+        public bool IsValidPiece(int piece)
+            => unchecked((uint)piece < (uint)session.PieceCount);
 
         public TurnSlotDie GetCurrent()
         {
@@ -60,9 +92,9 @@ namespace Ludo.API.Service
                                 Position = pi.CurrentPosition,
                                 Moved = pi.MovedPosition,
                                 Collision = pi.Collision.HasValue
-                                ? new PlayerPiece
+                                ? new SlotPiece
                                 {
-                                    Player = pi.Collision.Value.Slot,
+                                    Slot = pi.Collision.Value.Slot,
                                     Piece = pi.Collision.Value.Piece,
                                 } : null
                             }).ToArray()
@@ -105,6 +137,41 @@ namespace Ludo.API.Service
                     }
                 }
             remainingUserCount = -1;
+        }
+
+        // returns (0,-1) if the game has not started yet.
+        // returns (t,-1) if piece is out of range.
+        public (int turn, int slot) GetPieceInfo(int piece, out PieceInfo pieceInfo)
+        {
+            pieceInfo = null;
+            // must grab a local reference to our cache object to be safe:
+            TurnCache turn = CurrentTurn;
+            if (turn == null) // game not started yet.
+                return (0,-1);
+            if (unchecked((uint)piece >= (uint)session.PieceCount))
+                return (turn.Turn, -1);
+            pieceInfo = turn.pieces[piece];
+            return (turn.Turn, turn.Slot);
+
+        }
+
+        public Error MovePiece(int slot, int piece)
+        {
+            if (!IsValidSlot(slot))
+                return Error.Codes.E10InvalidSlotIndex;
+            if (!IsValidPiece(piece))
+                return Error.Codes.E18InvalidPieceIndex;
+            if (slots[slot] == null)
+                return Error.Codes.E16SlotIsEmpty;
+            lock (sessionLocker)
+            {
+                if (session.CurrentSlot != slot || !session.IsAcceptingInput)
+                    return Error.Codes.E15NotYourTurn;
+                if (!session.CanMovePiece(piece))
+                    return Error.Codes.E19GameRuleViolation;
+                session.MovePiece(piece);
+            }
+            return Error.Codes.E00NoError;
         }
 
         #region --- IGameStateSession ---
