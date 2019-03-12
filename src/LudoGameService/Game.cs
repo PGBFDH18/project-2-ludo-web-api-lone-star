@@ -36,7 +36,7 @@ namespace Ludo.API.Service
         public IGamePhase Phase => _phase;
         private IGamePhase _phase = TransitionPhase.Creating;
 
-        public Error TryStartGame(int startingSlot = -1)
+        public Error TryStartGame()
         {
             var setup = _phase.Setup;
             if (setup == null)
@@ -46,19 +46,40 @@ namespace Ludo.API.Service
                 return err;
             var trans = new TransitionPhase(GamePhase.starting, setup);
             //since only once thread can successfully call TryFinalLock, we don't need a CompareExchange here:
-            Volatile.Write(ref _phase, trans); // (this is most likely redundant, but it occurs seldom so just in case...)
+            Volatile.Write(ref _phase, trans); // (likely overkill, but it occurs seldom so just in case...)
 
             // ------------ TODO: do we want a countdown before the game starts?
-            // currently we just do it "instantly"...
+            // currently we just start "instantly"...
 
+            // ------ Setup game, bots, and listeners, then call Start! ------
             var ingame = new IngamePhase(trans.Slots);
-            Volatile.Write(ref _phase, trans); // (this is most likely redundant, but it occurs seldom so just in case...)
+            ingame.WinnerDeclared += Ingame_WinnerDeclared;
+            // TODO: bots
 
-            // ------ Setup bots and listeners before calling Start! ------
-            // TODO^
+            Volatile.Write(ref _phase, trans); // (likely overkill, but it occurs seldom so just in case...)
             ingame.Start();
 
             return Error.Codes.E00NoError;
+        }
+
+        private void Ingame_WinnerDeclared(IngamePhase sender)
+        {
+            // assuming we have handled the logic session correctly...
+            // ...this should only called from one thread once (race free).
+            sender.WinnerDeclared -= Ingame_WinnerDeclared; // <- important!
+            Finish(sender);
+        }
+
+        private void Finish(IngamePhase ingame)
+        {
+            // (kind of redundant but, whatever... keeps things consistent)
+            var trans = new TransitionPhase(GamePhase.ending, ingame);
+            Volatile.Write(ref _phase, trans);
+
+            // -- announce that the game is / has ended (in a separate thread?)
+
+            var finished = new FinishedPhase(ingame.Winner, ingame.Slots);
+            Volatile.Write(ref _phase, finished);
         }
 
         // thread-safe, lock-free, performs roll-back on to_factory failure.

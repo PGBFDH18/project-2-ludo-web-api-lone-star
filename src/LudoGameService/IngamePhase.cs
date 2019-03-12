@@ -8,17 +8,19 @@ namespace Ludo.API.Service
     public partial class IngamePhase : IGamePhase
     {
         private readonly GameLogic.ISession session;
-        private readonly ISlotArray slots;
         private readonly object sessionLocker = new object();
 
         // NEVER MODIFY THESE OUTSIDE OF SESSION EVENT LISTENERS!
         private readonly TurnCache[] turnCache; // cyclic buffer
         private int turnCacheIndex = -1; // current buffer index
 
+        private TurnCache CurrentTurn
+            => turnCacheIndex == -1 ? null : turnCache[turnCacheIndex];
+
         public IngamePhase(ISlotArray slots)
         {
             var s = new SlotArray(slots); // <-- makes a copy
-            this.slots = s;
+            Slots = s;
             session = GameLogic.SessionFactory.New();
 
             int players = 0;
@@ -31,7 +33,23 @@ namespace Ludo.API.Service
 
             turnCache = new TurnCache[players * 2];
             session.TurnBegun += Session_TurnBegun;
+            session.WinnerDeclared += Session_WinnerDeclared;
         }
+
+        public ISlotArray Slots { get; }
+        public bool HasStarted => session.HasStarted;
+        public bool IsLoadedFromSave => session.IsLoadedFromSavegame;
+
+        internal bool Start()
+        {
+            lock(sessionLocker)
+                return session.Start();
+        }
+
+        internal event Action<IngamePhase> WinnerDeclared;
+
+        private void Session_WinnerDeclared(object sender, EventArgs e)
+            => WinnerDeclared?.Invoke(this);
 
         private void Session_TurnBegun(object sender, GameLogic.TurnBegunEventArgs e)
         {
@@ -46,24 +64,14 @@ namespace Ludo.API.Service
             turnCacheIndex = i;
         }
 
-        public ISlotArray Slots => slots;
-        public bool HasStarted => session.HasStarted;
-        public bool IsLoadedFromSave => session.IsLoadedFromSavegame;
-
-        private TurnCache CurrentTurn
-            => turnCacheIndex == -1 ? null : turnCache[turnCacheIndex];
-
-        internal bool Start()
-        {
-            lock(sessionLocker)
-                return session.Start();
-        }
-
         public bool IsValidSlot(int slot)
-            => unchecked((uint)slot < (uint)slots.Length);
+            => unchecked((uint)slot < (uint)Slots.Length);
 
         public bool IsValidPiece(int piece)
             => unchecked((uint)piece < (uint)session.PieceCount);
+
+        // Who won? (SlotIndex 0-3 or -1 if no one has won yet.)
+        public int Winner => session.Winner;
 
         public TurnSlotDie GetCurrent()
         {
@@ -117,11 +125,11 @@ namespace Ludo.API.Service
         // remainingUserCount is -1 if no change occurred.
         internal void Concede(string userId, out int remainingUserCount)
         {
-            int slot = slots.IndexOf(userId); // pre-lock search
+            int slot = Slots.IndexOf(userId); // pre-lock search
             if (slot != -1)
                 lock (sessionLocker)
                 {
-                    if (slots[slot] == userId) // post-lock check
+                    if (Slots[slot] == userId) // post-lock check
                     {
                         //TODO/FIXME
                         // 1. change slot to reflect a concede*
@@ -161,7 +169,7 @@ namespace Ludo.API.Service
                 return Error.Codes.E10InvalidSlotIndex;
             if (!IsValidPiece(piece))
                 return Error.Codes.E18InvalidPieceIndex;
-            if (slots[slot] == null)
+            if (Slots[slot] == null)
                 return Error.Codes.E16SlotIsEmpty;
             lock (sessionLocker)
             {

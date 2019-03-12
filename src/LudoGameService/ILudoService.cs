@@ -14,7 +14,7 @@ namespace Ludo.API.Service
         Error SetSlotReady(string gameId, int slot, UserReady userReady);
         Error UnSlotUser(string gameId, string userId);
         Error ClaimSlot(string gameId, int slot, string userId);
-        Error StartGame(string gameId, int startingSlot = -1);
+        Error StartGame(string gameId);
         Error Concede(string gameId, string userId); // TODO: auth!
     }
 }

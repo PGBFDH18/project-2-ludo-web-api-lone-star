@@ -6,14 +6,14 @@ namespace Ludo.API.Service
     {
         private readonly ISlotArray slots;
 
-        public FinishedPhase(byte winner, ISlotArray players)
+        public FinishedPhase(int winner, ISlotArray slots)
         {
             WinnerSlot = winner;
-            this.slots = new SlotArray(players);
+            this.slots = new SlotArray(slots);
         }
 
         // index of the winning slot.
-        public byte WinnerSlot { get; }
+        public int WinnerSlot { get; }
 
         public string Winner => slots[WinnerSlot];
 

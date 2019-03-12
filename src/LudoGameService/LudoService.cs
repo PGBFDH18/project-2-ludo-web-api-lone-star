@@ -1,7 +1,6 @@
 ﻿using Ludo.API.Models;
 using Ludo.API.Service.Extensions;
 using System;
-using System.Linq;
 
 namespace Ludo.API.Service
 {
@@ -105,12 +104,12 @@ namespace Ludo.API.Service
             return setup.TryClaimSlot(slot, userId, null); // <--- TODO: reservations!
         }
 
-        public Error StartGame(string gameId, int startingSlot = -1)
+        public Error StartGame(string gameId)
         {
             var game = Games.TryGet(Id.Partial(gameId));
             if (game == null)
                 return Error.Codes.E01GameNotFound;
-            return game.TryStartGame(startingSlot);
+            return game.TryStartGame();
             // TODO: loading a saved game
         }
 

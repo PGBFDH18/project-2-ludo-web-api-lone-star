@@ -63,7 +63,7 @@ namespace Ludo.GameLogic
         int PlayerCount { get; }
         // Number of pieces per player.
         int PieceCount { get; }
-        // Who won? (PlayerIndex 0-3 or -1 if no one has won yet)
+        // Who won? (SlotIndex 0-3 or -1 if no one has won yet.)
         int Winner { get; }
 
         // Get info about piece [0-3] for the current player.
